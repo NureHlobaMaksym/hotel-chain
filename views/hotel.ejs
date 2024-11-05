@@ -277,7 +277,7 @@
             const roomModal = document.getElementById('roomModal');
 
             roomModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget; // Button that triggered the modal
+                const button = event.relatedTarget;
                 const roomId = button.getAttribute('data-room-id');
                 const rooms = <%- JSON.stringify(rooms) %>
                 const room = rooms.find(r => r.room_id == roomId);

@@ -35,10 +35,17 @@
             justify-content: center;
             font-weight: bold;
         }
+
+        #photoCarousel .carousel-item img {
+            object-fit: contain;
+            object-position: center;
+            overflow: hidden;
+            height: 60vh;
+        }
     </style>
 </head>
 <body>
-<!-- Navbar -->
+
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container">
         <a class="navbar-brand fs-3 ms-5" href="/hotels">Мережа готелів</a>
@@ -64,8 +71,6 @@
         </div>
     </div>
 </nav>
-
-<!-- Main Content -->
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
