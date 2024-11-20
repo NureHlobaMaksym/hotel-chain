@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Профіль</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body>
+<header>
+    <%- include('header'); %>
+</header>
+<div class="container">
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-md-6 <%= bookings.length === 0 ? "m-auto" : ""%>">
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h3 class="text-center">Профіль користувача</h3>
+                        <table class="table table-bordered mt-4" id="profileTable"></table>
+                        <div class="d-flex justify-content-center">
+                            <button type="button" class="btn btn-primary me-4 col-auto" data-bs-toggle="modal"
+                                    data-bs-target="#editProfileModal">
+                                Редагувати дані
+                            </button>
+                            <button type="button" class="btn col-auto me-4 yellow_btn" data-bs-toggle="modal"
+                                    data-bs-target="#logoutModal">
+                                Вийти з акаунту
+                            </button>
+                            <button type="button" class="btn btn-danger col-auto" data-bs-toggle="modal"
+                                    data-bs-target="#deleteAccountModal">
+                                Видалити акаунт
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card shadow-sm p-4 mb-4">
+                    <h4 class="card-title text-center mb-4">Статистика акаунту</h4>
+                    <div id="statistics" class="row text-center"></div>
+                </div>
+            </div>
+            <div class="card <%= bookings.length === 0 ? 'd-none' : 'col-md-6'%>">
+                <div class="card-body">
+                    <div class="container">
+                        <h3 class="text-center">Мої бронювання</h3>
+                        <div id="bookings-container"></div>
+
+                        <nav aria-label="Пагінація">
+                            <ul class="pagination justify-content-center" id="pagination"></ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel"
+                 aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="logoutModalLabel">Підтвердження виходу</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Закрити"></button>
+                        </div>
+                        <div class="modal-body">
+                            Ви дійсно хочете вийти з акаунту?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                Скасувати
+                            </button>
+                            <a href="/logout" class="btn btn-danger">Вийти</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="deleteAccountModal" tabindex="-1"
+                 aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteAccountModalLabel">Підтвердження видалення
+                                акаунту</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Закрити"></button>
+                        </div>
+                        <div class="modal-body">
+                            Ви дійсно хочете видалити свій акаунт? Цю дію неможливо буде скасувати.
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                Скасувати
+                            </button>
+                            <button onclick="deleteProfile()" class="btn btn-danger">Видалити</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="errorModalLabel">Помилка</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p id="errorModalMessage">Сталася помилка. Спробуйте ще раз.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form id="reviewForm">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="reviewModalLabel">Створення відгуку</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Заголовок</label>
+                                    <input type="text" class="form-control" id="title" name="title" maxlength="100" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="pros_description" class="form-label">Плюси</label>
+                                    <textarea class="form-control" id="pros_description" name="pros_description" rows="3" maxlength="3000" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="cons_description" class="form-label">Мінуси</label>
+                                    <textarea class="form-control" id="cons_description" name="cons_description" rows="3" maxlength="3000" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Оцінки:</label>
+                                    <div class="row">
+                                        <div class="col">
+                                            <label for="staff_rating" class="form-label">Оцінка персоналу</label>
+                                            <div id="staff_star_rating" class="star-rating" data-rating="0">
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <label for="comfort_rating" class="form-label">Оцінка комфорту</label>
+                                            <div id="comfort_star_rating" class="star-rating" data-rating="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col">
+                                            <label for="price_quality_rating" class="form-label">Оцінка співвідношення ціни та якості</label>
+                                            <div id="price_quality_star_rating" class="star-rating" data-rating="0">
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <label for="cleanliness_rating" class="form-label">Оцінка чистоти</label>
+                                            <div id="cleanliness_star_rating" class="star-rating" data-rating="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col">
+                                            <label for="location_rating" class="form-label">Оцінка розташування</label>
+                                            <div id="location_star_rating" class="star-rating" data-rating="0">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <input type="hidden" name="booking_id" id="reviewBookingId">
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                                <input id="submitReviewButton" type="submit" data-bs-dismiss="modal" class="btn btn-primary" value="Залишити відгук">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="confirmCancelModal" tabindex="-1"
+                 aria-labelledby="confirmCancelLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="confirmCancelLabel">Підтвердження скасування
+                                бронювання</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Закрити"></button>
+                        </div>
+                        <div class="modal-body">
+                            Ви дійсно хочете скасувати це бронювання?
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                Скасувати
+                            </button>
+                            <button type="button" class="btn btn-danger" id="confirmDeleteButton">Скасувати
+                                бронювання
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editModalLabel"
+                 aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editModalLabel">Редагувати профіль</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
+                        </div>
+                        <form id="editProfileForm">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="first_name" class="form-label">Ім'я</label>
+                                    <input type="text" class="form-control" id="first_name" maxlength="50"
+                                           name="first_name" value="<%= user.first_name %>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label">Прізвище</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" maxlength="50"
+                                           value="<%= user.last_name %>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="email" name="email" maxlength="320"
+                                           value="<%= user.email %>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="country" class="form-label">Країна</label>
+                                    <input type="text" class="form-control" id="country" name="country" maxlength="90"
+                                           value="<%= user.country %>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="user_phone_number" class="form-label">Номер телефону</label>
+                                    <input type="text" class="form-control" id="user_phone_number" maxlength="15"
+                                           name="user_phone_number" value="<%= user.user_phone_number %>"
+                                           required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    Скасувати
+                                </button>
+                                <input id="editProfileButton" data-bs-dismiss="modal"  value="Зберегти зміни" type="submit" class="btn btn-primary">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        loadPage(1);
+        setProfileData(<%- JSON.stringify(user)%>)
+        loadStatistics();
+    });
+
+    let currentPage = 1;
+
+    async function loadPage(page) {
+        try {
+            const response = await fetch(`/profile?page=${page}`, {
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            });
+            const data = await response.json();
+            const bookingsContainer = document.getElementById('bookings-container');
+            bookingsContainer.innerHTML = '';
+            data.bookings.forEach(booking => {
+                bookingsContainer.innerHTML += `
+                <div class="row justify-content-center">
+                    <div class="col-1 p-2" style="width: 100%;">
+                        <div class="card shadow-sm p-2" style="border-radius: 30px;">
+                            <div class="row">
+                                <img src="${booking.room_photograph_url}" class="col-sm-4 m-auto"
+                                     style="border-radius: 30px; object-fit: cover; max-height: 100px">
+                                <div class="col-sm-8">
+                                    <div class="row pe-2">
+                                        <h5 class="card-title col-6"><a href="/hotel/${booking.hotel_id}">${booking.hotel_name}</a></h5>
+                                        <div class="text-end col-6" style="font-size: large; display: ${booking.status === "Активне" ? 'block' : 'none'}">
+                                            <a href="/booking/${booking.booking_id}/edit"><i class="bi bi-pencil-square text-primary"></i></a>
+                                            <a href="#" onclick="openCancelModal('${booking.booking_id}'); return false;"><i class="bi bi-x-square text-danger"></i></a>
+                                        </div>
+                                        <div class="text-end col-6" style="font-size: large; display: ${booking.status === "Активне" || booking.review_exists == 1 ? 'none' : 'block'}">
+                                            <button onclick="document.getElementById('reviewBookingId').value = ${booking.booking_id}; clearReviewForm();" type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">Залишити вігук</button>
+                                        </div>
+                                    </div>
+                                    <span class="card-text col-sm-3" style="font-size: 0.8em;">${booking.city}</span><br>
+                                    <span class="card-text col-sm-3" style="font-size: 0.8em;"><a href="/hotel/${booking.hotel_id}#room-${booking.room_id}">${booking.room_name}</a></span><br>
+                                    <span class="card-text col-6" style="font-size: 0.8em;">
+                                        ${new Date(booking.check_in_datetime).toLocaleDateString()} - ${new Date(booking.check_out_datetime).toLocaleDateString()}
+                                    </span>
+                                    <div class="row">
+                                        <div class="col-6">${booking.booking_price} ₴</div>
+                                        <div class="col-6 text-end pe-3" style="color: ${booking.status === "Активне" ? "green" : "black"}">${booking.status}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            });
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            const totalPages = data.totalPages;
+            currentPage = data.currentPage;
+            const visiblePages = 7;
+
+            if (totalPages <= visiblePages) {
+                for (let i = 1; i <= totalPages; i++) {
+                    pagination.innerHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadPage(${i}); return false;">${i}</a>
+                    </li>
+                `;
+                }
+            } else {
+                pagination.innerHTML += `
+                <li class="page-item ${currentPage === 1 ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadPage(1); return false;">1</a>
+                </li>
+            `;
+                if (currentPage > 3) {
+                    pagination.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                let start = Math.max(2, currentPage - 1);
+                let end = Math.min(totalPages - 1, currentPage + 1);
+                if (currentPage === 1) {
+                    end = 3;
+                } else if (currentPage === totalPages) {
+                    start = totalPages - 2;
+                }
+                for (let i = start; i <= end; i++) {
+                    pagination.innerHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadPage(${i}); return false;">${i}</a>
+                    </li>
+                `;
+                }
+                if (currentPage < totalPages - 2) {
+                    pagination.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                pagination.innerHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="loadPage(${totalPages}); return false;">${totalPages}</a>
+                </li>
+            `;
+            }
+        } catch (error) {
+            console.error('Помилка при завантаженні сторінки:', error);
+        }
+    }
+
+    function openCancelModal(bookingId) {
+        const confirmButton = document.getElementById('confirmDeleteButton');
+        const confirmCancelModal = new bootstrap.Modal(document.getElementById('confirmCancelModal'));
+        confirmButton.onclick = function () {
+            confirmCancelModal.hide();
+            deleteBooking(bookingId);
+        };
+        confirmCancelModal.show();
+    }
+
+    async function deleteProfile() {
+        try {
+            const response = await fetch(`/profile`, {
+                method: 'DELETE',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                window.location.href = "/login"
+            } else {
+                alert('Помилка при видалені акаунту');
+            }
+        } catch (error) {
+            console.error('Помилка при видалені акаунту:', error);
+            alert('Помилка при видалені акаунту');
+        }
+    }
+
+    async function deleteBooking(bookingId) {
+        try {
+            const response = await fetch(`/bookings/${bookingId}`, {
+                method: 'DELETE',
+                headers: {'X-Requested-With': 'XMLHttpRequest'}
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                const bookingsContainer = document.getElementById('bookings-container');
+                if (bookingsContainer.childElementCount === 1) {
+                    currentPage--;
+                }
+                loadPage(currentPage);
+                loadStatistics();
+            } else {
+                alert('Помилка при скасуванні бронювання');
+            }
+        } catch (error) {
+            console.error('Помилка при скасуванні бронювання:', error);
+            alert('Помилка при скасуванні бронювання');
+        }
+    }
+
+    function renderStars(container, rating) {
+        container.innerHTML = '';
+        for (let i = 0; i < 10; i++) {
+            const star = document.createElement('i');
+            star.classList.add('bi', 'bi-star');
+
+            if (i < rating) {
+                star.classList.replace('bi-star', 'bi-star-fill');
+                star.classList.add('text-warning');
+            }
+
+            star.addEventListener('mouseenter', function() {
+                for (let j = 0; j < 10; j++) {
+                    const previewStar = container.children[j];
+                    if (j <= i) {
+                        previewStar.classList.replace('bi-star', 'bi-star-fill');
+                        previewStar.classList.add('text-warning', 'opacity-50');
+                    } else {
+                        previewStar.classList.replace('bi-star-fill', 'bi-star');
+                        previewStar.classList.remove('text-warning', 'opacity-50');
+                    }
+                }
+            });
+
+            star.addEventListener('mouseleave', function() {
+                for (let j = 0; j < 10; j++) {
+                    const resetStar = container.children[j];
+                    if (j < rating) {
+                        resetStar.classList.replace('bi-star', 'bi-star-fill');
+                        resetStar.classList.add('text-warning');
+                    } else {
+                        resetStar.classList.replace('bi-star-fill', 'bi-star');
+                        resetStar.classList.remove('text-warning', 'opacity-50');
+                    }
+                }
+            });
+
+            container.addEventListener('mouseleave', function() {
+                for (let j = 0; j < 10; j++) {
+                    const star = container.children[j];
+                    star.classList.remove('opacity-50');
+                }
+            });
+
+            star.addEventListener('click', function() {
+                let newRating = i + 1;
+                if (container.getAttribute('data-rating') == newRating) {
+                    newRating = 0;
+                }
+                container.setAttribute('data-rating', newRating);
+                renderStars(container, newRating);
+            });
+
+            container.appendChild(star);
+        }
+        if(!validateStarRatings()) {
+            document.getElementById("submitReviewButton").setAttribute("disabled", "")
+        } else {
+            document.getElementById("submitReviewButton").removeAttribute("disabled")
+        }
+    }
+
+    function validateStarRatings() {
+        const starRatingElements = document.querySelectorAll('.star-rating');
+        for (let i = 0; i < starRatingElements.length; i++) {
+            const rating = parseInt(starRatingElements[i].getAttribute('data-rating'), 10);
+            if (isNaN(rating) || rating <= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const ratings = ['staff', 'comfort', 'price_quality', 'cleanliness', 'location'];
+
+        ratings.forEach(function(rating) {
+            const container = document.getElementById(rating + '_star_rating');
+            const initialRating = container.getAttribute('data-rating');
+            renderStars(container, parseInt(initialRating));
+        });
+    });
+
+    async function submitReview(event) {
+        event.preventDefault();
+        const title = document.getElementById('title').value;
+        const prosDescription = document.getElementById('pros_description').value;
+        const consDescription = document.getElementById('cons_description').value;
+        const bookingId = document.querySelector('input[name="booking_id"]').value;
+        const staffRating = parseInt(document.getElementById('staff_star_rating').getAttribute('data-rating'), 10);
+        const comfortRating = parseInt(document.getElementById('comfort_star_rating').getAttribute('data-rating'), 10);
+        const priceQualityRating = parseInt(document.getElementById('price_quality_star_rating').getAttribute('data-rating'), 10);
+        const cleanlinessRating = parseInt(document.getElementById('cleanliness_star_rating').getAttribute('data-rating'), 10);
+        const locationRating = parseInt(document.getElementById('location_star_rating').getAttribute('data-rating'), 10);
+
+        const reviewData = {
+            title: title,
+            pros_description: prosDescription,
+            cons_description: consDescription,
+            staff_rating: staffRating,
+            comfort_rating: comfortRating,
+            price_quality_rating: priceQualityRating,
+            cleanliness_rating: cleanlinessRating,
+            location_rating: locationRating,
+            booking_id: bookingId
+        };
+
+        try {
+            const response = await fetch('/review/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(reviewData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                await loadPage(currentPage);
+                const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+                modal.hide();
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error('Error submitting review:', error);
+            alert('There was an error submitting your review. Please try again.');
+        }
+    }
+
+    async function submitProfileEdit(event) {
+        event.preventDefault();
+        const firstName = document.getElementById('first_name').value;
+        const lastName = document.getElementById('last_name').value;
+        const email = document.getElementById('email').value;
+        const country = document.getElementById('country').value;
+        const userPhoneNumber = document.getElementById('user_phone_number').value;
+
+        const editProfileData = {
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            country: country,
+            user_phone_number: userPhoneNumber
+        };
+
+        try {
+            const response = await fetch('/profile', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(editProfileData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setProfileData(editProfileData);
+                const modal = new bootstrap.Modal(document.getElementById('editProfileModal'));
+                modal.hide();
+            } else {
+                const errorModalMessage = document.getElementById('errorModalMessage');
+                errorModalMessage.textContent = result.message;
+                const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                errorModal.show();
+            }
+        } catch (error) {
+            console.error('Error submitting review:', error);
+            alert('Помилка при редагуванні профілі');
+        }
+    }
+
+    function setProfileData(data) {
+        document.getElementById('profileTable').innerHTML = `
+            <tr>
+                <th>Ім'я</th>
+                <td>${data.first_name}</td>
+            </tr>
+            <tr>
+                <th>Прізвище</th>
+                <td>${data.last_name}</td>
+            </tr>
+            <tr>
+                <th>Email</th>
+                <td>${data.email.length > 50 ? data.email.substring(0, 50) + '...' : data.email}</td>
+            </tr>
+            <tr>
+                <th>Країна</th>
+                <td>${data.country.length > 50 ? data.country.substring(0, 50) + '...' : data.country}</td>
+            </tr>
+            <tr>
+                <th>Номер телефону</th>
+                <td>${data.user_phone_number}</td>
+            </tr>
+        `
+    }
+
+    async function loadStatistics() {
+        const response = await fetch(`/profile/statistics`, {
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        });
+        const data = await response.json();
+        const statisticsContainer = document.getElementById("statistics")
+        statisticsContainer.innerHTML = `
+            <div class="col-md-4 mb-3 mb-md-0">
+                            <h5 class="text-primary mb-1">${data.statistics.booking_count}</h5>
+                            <p class="mb-0 text-muted">Заброньованих номерів</p>
+                        </div>
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <h5 class="text-primary mb-1">${formatNumberWithSpaces(data.statistics.total_booking_price)} ₴</h5>
+                            <p class="mb-0 text-muted">Витрачено грошей</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h5 class="text-primary mb-1">${data.statistics.review_count}</h5>
+                            <p class="mb-0 text-muted">Залишено відгуків</p>
+                        </div>
+        `
+    }
+
+    function formatNumberWithSpaces(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+
+    function clearReviewForm() {
+        document.getElementById('title').value = "";
+        document.getElementById('pros_description').value = "";
+        document.getElementById('cons_description').value = "";
+        const ratings = ['staff', 'comfort', 'price_quality', 'cleanliness', 'location'];
+        ratings.forEach(function(rating) {
+            const container = document.getElementById(rating + '_star_rating');
+            renderStars(container, 0);
+        });
+    }
+    document.getElementById('reviewForm').addEventListener('submit', submitReview);
+    document.getElementById('editProfileForm').addEventListener('submit', submitProfileEdit);
+</script>
+</body>
+</html>

@@ -7,12 +7,172 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
+<style>
+    .reviews-container {
+        max-width: 800px;
+        margin: auto;
+    }
+
+    .review {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .review-avatar {
+        width: 40px;
+        height: 40px;
+        color: #fff;
+        font-weight: bold;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2em;
+    }
+
+    .review-title {
+        font-size: 1.1em;
+        color: #333;
+    }
+
+    .review-text {
+        font-size: 0.95em;
+        color: #555;
+        margin-top: 8px;
+        margin-bottom: 12px;
+    }
+
+    .review-footer {
+        font-size: 0.85em;
+        color: #777;
+    }
+
+    .dot {
+        font-size: 8px;
+        vertical-align: middle;
+    }
+
+    .rating {
+        background-color: #007bff;
+        color: #fff;
+        border-radius: 4px;
+        font-weight: bold;
+        height: 30px;
+    }
+
+    .feedback {
+        font-size: 0.85em;
+        color: #555;
+    }
+
+    .feedback a {
+        text-decoration: none;
+        font-weight: 500;
+    }
+</style>
 <body>
+<% function getAvatarColor(userId) {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const hueStep = 137;
+    const hue = Math.abs((hash * hueStep) % 360);
+
+    const saturation = 60;
+    const lightness = 45;
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+} %>
+
+<% function calculateNights(checkinDate, checkoutDate) {
+    const checkin = new Date(checkinDate.toDateString());
+    const checkout = new Date(checkoutDate.toDateString());
+    if (checkin >= checkout) {
+        return 0;
+    }
+    const diffTime = checkout - checkin;
+    const diffDays = diffTime / (1000 * 3600 * 24);
+    return diffDays;
+}
+
+function getNightDeclension(n) {
+    if (n % 100 >= 11 && n % 100 <= 14) {
+        return `${n} ночей`;
+    }
+    switch (n % 10) {
+        case 1:
+            return `${n} ніч`;
+        case 2:
+        case 3:
+        case 4:
+            return `${n} ночі`;
+        default:
+            return `${n} ночей`;
+    }
+}
+
+function getReviewDeclension(n) {
+    if (n % 100 >= 11 && n % 100 <= 14) {
+        return `${n} відгуків`;
+    }
+    switch (n % 10) {
+        case 1:
+            return `${n} відгук`;
+        case 2:
+        case 3:
+        case 4:
+            return `${n} відгуки`;
+        default:
+            return `${n} відгуків`;
+    }
+}
+
+function formatDateToMonthYear(date) {
+    const months = [
+        "січень", "лютий", "березень", "квітень", "травень", "червень",
+        "липень", "серпень", "вересень", "жовтень", "листопад", "грудень"
+    ];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${month} ${year}`;
+}
+
+function formatRating(rating) {
+    return (+rating) % 1 === 0 ? +rating : (+rating).toFixed(1);
+}
+
+function getRatingDescription(rating) {
+    if (rating >= 9) {
+        return "Блискуче";
+    } else if (rating >= 8) {
+        return "Дуже добре";
+    } else if (rating >= 7) {
+        return "Добре";
+    } else if (rating >= 6) {
+        return "Задовільно";
+    } else if (rating >= 5) {
+        return "Посередньо";
+    } else if (rating >= 4) {
+        return "Нижче середнього";
+    } else if (rating >= 3) {
+        return "Погано";
+    } else if (rating >= 2) {
+        return "Дуже погано";
+    } else if (rating >= 1) {
+        return "Жахливо";
+    } else {
+        return "Немає оцінки";
+    }
+} %>
 <header>
     <%- include('header'); %>
 </header>
 <div class="container d-flex align-items-center justify-content-center my-5">
-    <div class="card w-75">
+    <div class="card" style="width: 93%">
         <div class="card-header">
             <h2><%= hotel.hotel_name %></h2>
             <div class="d-flex align-items-center">
@@ -36,15 +196,39 @@
                         <h5 class="modal-title" id="roomModalLabel"></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body d-flex">
-                        <div>
-                            <span id="roomDescription"></span> <br>
-                            <span>Площа:</span> <span id="roomSize"></span> м²<br>
-                            <span>Дозвіл на куріння:</span> <span id="smokingPermission"></span>
+                    <div class="modal-body row">
+                        <div id="roomPhotoCarousel" class="carousel slide col-8" data-bs-ride="carousel">
+                            <div class="carousel-inner" id="roomPhotoCarouselInner"></div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#roomPhotoCarousel"
+                                    data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#roomPhotoCarousel"
+                                    data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                            <div class="text-muted text-center col-12">
+                                <span id="roomPhotoCounter"></span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>
+                        <div class="col-4 mt-2">
+                            <span id="roomDescription"></span><br>
+                            <div class="mt-2"><b>Площа:</b> <span id="roomSize"></span> м²</div>
+                            <div class="mt-2"><b>Ліжка:</b> <span id="roomBedTypes"></span></div>
+                            <div class="mt-2"><b>Зручності готелю:</b>
+                                <ul>
+                                    <% hotelAmenities.forEach((amenity, i) => { %>
+                                        <li><%= amenity.hotel_amenity_name %></li>
+                                    <% }) %>
+                                </ul>
+                            </div>
+                            <div class="mt-2"><b>Зручності номера:</b>
+                                <ul id="roomAmenities"></ul>
+                            </div>
+                            <div class="mt-2"><b>Дозвіл на куріння:</b> <span id="smokingPermission"></span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -59,7 +243,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body p-0">
-                        <div id="photoCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div id="hotelPhotoCarousel" class="carousel slide" data-bs-ride="carousel">
                             <div class="carousel-inner">
                                 <% photographs.forEach((photo, index) => { %>
                                     <div class="carousel-item <%= index === 0 ? 'active' : '' %>"
@@ -70,12 +254,12 @@
                                     </div>
                                 <% }) %>
                             </div>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#photoCarousel"
+                            <button class="carousel-control-prev" type="button" data-bs-target="#hotelPhotoCarousel"
                                     data-bs-slide="prev">
                                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Previous</span>
                             </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#photoCarousel"
+                            <button class="carousel-control-next" type="button" data-bs-target="#hotelPhotoCarousel"
                                     data-bs-slide="next">
                                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
                                 <span class="visually-hidden">Next</span>
@@ -88,174 +272,362 @@
                 </div>
             </div>
         </div>
-        <div class="container row justify-content-center col-12 col-md-12 mt-2 row g-3">
-            <% if (photographs.length === 1) { %>
-                <div class="col-12">
-                    <img src="<%= photographs[0].hotel_photograph_url %>"
-                         alt="<%= photographs[0].hotel_photograph_description %>"
-                         class="shadow-sm w-100" data-index="0"
-                         title="<%= photographs[0].hotel_photograph_description%>"
-                         data-bs-url="<%= photographs[0].hotel_photograph_url %>"
-                         data-bs-description="<%= photographs[0].hotel_photograph_description %>"
-                         data-bs-toggle="modal" data-bs-target="#photoModal">
-                </div>
-            <% } else if (photographs.length === 2) { %>
-                <div class="col-6">
-                    <img src="<%= photographs[1].hotel_photograph_url %>"
-                         alt="<%= photographs[1].hotel_photograph_description %>"
-                         class="shadow-sm w-100" data-index="1"
-                         title="<%= photographs[1].hotel_photograph_description%>"
-                         data-bs-url="<%= photographs[1].hotel_photograph_url %>"
-                         data-bs-description="<%= photographs[1].hotel_photograph_description %>"
-                         data-bs-toggle="modal" data-bs-target="#photoModal">
-                </div>
-                <div class="col-6">
-                    <img src="<%= photographs[0].hotel_photograph_url %>"
-                         alt="<%= photographs[0].hotel_photograph_description %>"
-                         class="shadow-sm w-100" data-index="0"
-                         title="<%= photographs[0].hotel_photograph_description%>"
-                         data-bs-url="<%= photographs[0].hotel_photograph_url %>"
-                         data-bs-description="<%= photographs[0].hotel_photograph_description %>"
-                         data-bs-toggle="modal" data-bs-target="#photoModal">
-                </div>
-            <% } else if (photographs.length === 3) { %>
-                <div class="col-4">
-                    <div class="col">
-                        <img src="<%= photographs[1].hotel_photograph_url %>"
-                             alt="<%= photographs[1].hotel_photograph_description %>"
-                             data-index="1" class="shadow-sm w-100"
-                             title="<%= photographs[1].hotel_photograph_description%>"
-                             data-bs-url="<%= photographs[1].hotel_photograph_url %>"
-                             data-bs-description="<%= photographs[1].hotel_photograph_description %>"
-                             data-bs-toggle="modal" data-bs-target="#photoModal">
-                    </div>
-                    <div class="col">
-                        <img src="<%= photographs[2].hotel_photograph_url %>"
-                             alt="<%= photographs[2].hotel_photograph_description %>"
-                             data-index="2" class="shadow-sm w-100 mt-2"
-                             title="<%= photographs[2].hotel_photograph_description%>"
-                             data-bs-url="<%= photographs[2].hotel_photograph_url %>"
-                             data-bs-description="<%= photographs[2].hotel_photograph_description %>"
-                             data-bs-toggle="modal" data-bs-target="#photoModal">
-                    </div>
-                </div>
-                <div class="col-8">
-                    <img src="<%= photographs[0].hotel_photograph_url %>"
-                         alt="<%= photographs[0].hotel_photograph_description %>"
-                         class="shadow-sm w-100" data-index="0"
-                         title="<%= photographs[0].hotel_photograph_description%>"
-                         data-bs-url="<%= photographs[0].hotel_photograph_url %>"
-                         data-bs-description="<%= photographs[0].hotel_photograph_description %>"
-                         data-bs-toggle="modal" data-bs-target="#photoModal">
-                </div>
-            <% } else if (photographs.length >= 4) { %>
-                <div class="col-4">
-                    <div class="col">
-                        <img src="<%= photographs[1].hotel_photograph_url %>"
-                             alt="<%= photographs[1].hotel_photograph_description %>"
-                             class="shadow-sm w-100" data-index="1"
-                             title="<%= photographs[1].hotel_photograph_description%>"
-                             data-bs-url="<%= photographs[1].hotel_photograph_url %>"
-                             data-bs-description="<%= photographs[1].hotel_photograph_description %>"
-                             data-bs-toggle="modal" data-bs-target="#photoModal">
-                    </div>
-                    <div class="col">
-                        <img src="<%= photographs[2].hotel_photograph_url %>"
-                             alt="<%= photographs[2].hotel_photograph_description %>"
-                             data-index="2" class="shadow-sm w-100 mt-2"
-                             title="<%= photographs[2].hotel_photograph_description%>"
-                             data-bs-url="<%= photographs[2].hotel_photograph_url %>"
-                             data-bs-description="<%= photographs[2].hotel_photograph_description %>"
-                             data-bs-toggle="modal" data-bs-target="#photoModal">
-                    </div>
-                </div>
-                <div class="col-8">
-                    <img src="<%= photographs[0].hotel_photograph_url %>"
-                         alt="<%= photographs[0].hotel_photograph_description %>"
-                         data-index="0" class="shadow-sm w-100"
-                         title="<%= photographs[0].hotel_photograph_description%>"
-                         data-bs-url="<%= photographs[0].hotel_photograph_url %>"
-                         data-bs-description="<%= photographs[0].hotel_photograph_description %>"
-                         data-bs-toggle="modal" data-bs-target="#photoModal">
-                </div>
-                <% if (photographs.length > 7) { %>
-                    <% for (var i = 3; i < 6; i++) { %>
-                        <div class="col-6 col-md-4 col-lg-3">
-                            <img src="<%= photographs[i].hotel_photograph_url %>"
-                                 alt="<%= photographs[i].hotel_photograph_description %>"
-                                 data-index="<%= i %>" class="shadow-sm w-100"
-                                 title="<%= photographs[i].hotel_photograph_description%>"
-                                 data-bs-url="<%= photographs[i].hotel_photograph_url %>"
-                                 data-bs-description="<%= photographs[i].hotel_photograph_description %>"
+        <div class="row">
+            <div class="col-8">
+                <div class="container row justify-content-center mt-2 row ms-2 g-3">
+                    <% if (photographs.length === 1) { %>
+                        <div class="col-12">
+                            <img src="<%= photographs[0].hotel_photograph_url %>"
+                                 alt="<%= photographs[0].hotel_photograph_description %>"
+                                 class="shadow-sm w-100" data-index="0"
+                                 title="<%= photographs[0].hotel_photograph_description %>"
+                                 data-bs-url="<%= photographs[0].hotel_photograph_url %>"
+                                 data-bs-description="<%= photographs[0].hotel_photograph_description %>"
                                  data-bs-toggle="modal" data-bs-target="#photoModal">
                         </div>
-                    <% } %>
-                    <div class="col-6 col-md-4 col-lg-3 position-relative">
-
-                        <img src="<%= photographs[6].hotel_photograph_url %>"
-                             alt="<%= photographs[6].hotel_photograph_description %>"
-                             data-bs-url="<%= photographs[6].hotel_photograph_url %>"
-                             data-index="6"
-                             title="<%= photographs[6].hotel_photograph_description%>"
-                             data-bs-description="<%= photographs[6].hotel_photograph_description %>"
-                             class="shadow-sm w-100 h-100" style="position: absolute; left: 0;"
-                             data-bs-toggle="modal" data-bs-target="#photoModal">
-                        <div class="overlay-text"> + <%= photographs.length - 7 %> фото</div>
-                    </div>
-                <% } else { %>
-                    <% for (var i = 3; i < photographs.length; i++) { %>
-                        <div class="col-6 col-md-4 col-lg-3">
-                            <img src="<%= photographs[i].hotel_photograph_url %>"
-                                 alt="<%= photographs[i].hotel_photograph_description %>"
-                                 data-index="<%= i %>" class="shadow-sm w-100"
-                                 title="<%= photographs[i].hotel_photograph_description%>"
-                                 data-bs-toggle="modal" data-bs-target="#photoModal"
-                                 data-bs-url="<%= photographs[i].hotel_photograph_url %>"
-                                 data-bs-description="<%= photographs[i].hotel_photograph_description %>">
+                    <% } else if (photographs.length === 2) { %>
+                        <div class="col-6">
+                            <img src="<%= photographs[1].hotel_photograph_url %>"
+                                 alt="<%= photographs[1].hotel_photograph_description %>"
+                                 class="shadow-sm w-100" data-index="1"
+                                 title="<%= photographs[1].hotel_photograph_description %>"
+                                 data-bs-url="<%= photographs[1].hotel_photograph_url %>"
+                                 data-bs-description="<%= photographs[1].hotel_photograph_description %>"
+                                 data-bs-toggle="modal" data-bs-target="#photoModal">
                         </div>
+                        <div class="col-6">
+                            <img src="<%= photographs[0].hotel_photograph_url %>"
+                                 alt="<%= photographs[0].hotel_photograph_description %>"
+                                 class="shadow-sm w-100" data-index="0"
+                                 title="<%= photographs[0].hotel_photograph_description %>"
+                                 data-bs-url="<%= photographs[0].hotel_photograph_url %>"
+                                 data-bs-description="<%= photographs[0].hotel_photograph_description %>"
+                                 data-bs-toggle="modal" data-bs-target="#photoModal">
+                        </div>
+                    <% } else if (photographs.length === 3) { %>
+                        <div class="col-4">
+                            <div class="col">
+                                <img src="<%= photographs[1].hotel_photograph_url %>"
+                                     alt="<%= photographs[1].hotel_photograph_description %>"
+                                     data-index="1" class="shadow-sm w-100"
+                                     title="<%= photographs[1].hotel_photograph_description %>"
+                                     data-bs-url="<%= photographs[1].hotel_photograph_url %>"
+                                     data-bs-description="<%= photographs[1].hotel_photograph_description %>"
+                                     data-bs-toggle="modal" data-bs-target="#photoModal">
+                            </div>
+                            <div class="col">
+                                <img src="<%= photographs[2].hotel_photograph_url %>"
+                                     alt="<%= photographs[2].hotel_photograph_description %>"
+                                     data-index="2" class="shadow-sm w-100 mt-2"
+                                     title="<%= photographs[2].hotel_photograph_description %>"
+                                     data-bs-url="<%= photographs[2].hotel_photograph_url %>"
+                                     data-bs-description="<%= photographs[2].hotel_photograph_description %>"
+                                     data-bs-toggle="modal" data-bs-target="#photoModal">
+                            </div>
+                        </div>
+                        <div class="col-8">
+                            <img src="<%= photographs[0].hotel_photograph_url %>"
+                                 alt="<%= photographs[0].hotel_photograph_description %>"
+                                 class="shadow-sm w-100" data-index="0"
+                                 title="<%= photographs[0].hotel_photograph_description %>"
+                                 data-bs-url="<%= photographs[0].hotel_photograph_url %>"
+                                 data-bs-description="<%= photographs[0].hotel_photograph_description %>"
+                                 data-bs-toggle="modal" data-bs-target="#photoModal">
+                        </div>
+                    <% } else if (photographs.length >= 4) { %>
+                        <div class="col-4">
+                            <div class="col">
+                                <img src="<%= photographs[1].hotel_photograph_url %>"
+                                     alt="<%= photographs[1].hotel_photograph_description %>"
+                                     class="shadow-sm w-100" data-index="1"
+                                     title="<%= photographs[1].hotel_photograph_description %>"
+                                     data-bs-url="<%= photographs[1].hotel_photograph_url %>"
+                                     data-bs-description="<%= photographs[1].hotel_photograph_description %>"
+                                     data-bs-toggle="modal" data-bs-target="#photoModal">
+                            </div>
+                            <div class="col">
+                                <img src="<%= photographs[2].hotel_photograph_url %>"
+                                     alt="<%= photographs[2].hotel_photograph_description %>"
+                                     data-index="2" class="shadow-sm w-100 mt-2"
+                                     title="<%= photographs[2].hotel_photograph_description %>"
+                                     data-bs-url="<%= photographs[2].hotel_photograph_url %>"
+                                     data-bs-description="<%= photographs[2].hotel_photograph_description %>"
+                                     data-bs-toggle="modal" data-bs-target="#photoModal">
+                            </div>
+                        </div>
+                        <div class="col-8">
+                            <img src="<%= photographs[0].hotel_photograph_url %>"
+                                 alt="<%= photographs[0].hotel_photograph_description %>"
+                                 data-index="0" class="shadow-sm w-100"
+                                 title="<%= photographs[0].hotel_photograph_description %>"
+                                 data-bs-url="<%= photographs[0].hotel_photograph_url %>"
+                                 data-bs-description="<%= photographs[0].hotel_photograph_description %>"
+                                 data-bs-toggle="modal" data-bs-target="#photoModal">
+                        </div>
+                        <% if (photographs.length > 7) { %>
+                            <% for (var i = 3; i < 6; i++) { %>
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <img src="<%= photographs[i].hotel_photograph_url %>"
+                                         alt="<%= photographs[i].hotel_photograph_description %>"
+                                         data-index="<%= i %>" class="shadow-sm w-100"
+                                         title="<%= photographs[i].hotel_photograph_description %>"
+                                         data-bs-url="<%= photographs[i].hotel_photograph_url %>"
+                                         data-bs-description="<%= photographs[i].hotel_photograph_description %>"
+                                         data-bs-toggle="modal" data-bs-target="#photoModal">
+                                </div>
+                            <% } %>
+                            <div class="col-6 col-md-4 col-lg-3 position-relative">
+
+                                <img src="<%= photographs[6].hotel_photograph_url %>"
+                                     alt="<%= photographs[6].hotel_photograph_description %>"
+                                     data-bs-url="<%= photographs[6].hotel_photograph_url %>"
+                                     data-index="6"
+                                     title="<%= photographs[6].hotel_photograph_description %>"
+                                     data-bs-description="<%= photographs[6].hotel_photograph_description %>"
+                                     class="shadow-sm w-100 h-100" style="position: absolute; left: 0;"
+                                     data-bs-toggle="modal" data-bs-target="#photoModal">
+                                <div class="overlay-text"> + <%= photographs.length - 7 %> фото</div>
+                            </div>
+                        <% } else { %>
+                            <% for (var i = 3; i < photographs.length; i++) { %>
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <img src="<%= photographs[i].hotel_photograph_url %>"
+                                         alt="<%= photographs[i].hotel_photograph_description %>"
+                                         data-index="<%= i %>" class="shadow-sm w-100"
+                                         title="<%= photographs[i].hotel_photograph_description %>"
+                                         data-bs-toggle="modal" data-bs-target="#photoModal"
+                                         data-bs-url="<%= photographs[i].hotel_photograph_url %>"
+                                         data-bs-description="<%= photographs[i].hotel_photograph_description %>">
+                                </div>
+                            <% } %>
+                        <% } %>
                     <% } %>
-                <% } %>
-            <% } %>
+                </div>
+            </div>
+            <div class="col-md-4 mt-4 pe-4">
+                <div class="card">
+                    <div class="card-body row d-flex justify-content-end">
+                        <div class="col-auto text-end">
+                            <h4><%= getRatingDescription(hotelRating.average_rating) %></h4>
+                            <p class="text-muted"><%= getReviewDeclension(reviews.length)%><span class="<%= reviews.length === 0 ? "d-none" : ""%>"> • <a href="#reviews">Читати всі відгуки</a></span></p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="bg-primary text-white rounded-4 d-flex align-items-center justify-content-center"
+                                 style="width: 40px; height: 40px; font-size: 1rem; font-weight: bold;">
+                                <%= formatRating(hotelRating.average_rating)%>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card mt-3 <%= reviews.length === 0 ? "d-none" : ""%>">
+                    <div class="card-body row" style="font-size: small">
+                        <p>Ось що сподобалося гостям, які зупинялися тут:</p>
+                        <% reviews.slice(0, 3).forEach(review => { %>
+                            <hr class="mt-1"><p>"<%= review.pros_description.length > 300 ? review.pros_description.substring(0, 300) + '...' : review.pros_description %>"</p>
+                            <div class="row ms-2">
+                                <div class="review-avatar col-auto" style="background-color: <%= getAvatarColor(review.user_id.toString()) %>;"><%= review.first_name.charAt(0) %></div>
+                                <div class="col-auto">
+                                    <p class="mb-0 d-inline"><%= review.first_name %></p><br>
+                                    <div class="d-inline text-muted"><%= review.country %></div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
         </div>
+
 
         <div class="container">
             <div class="mt-4" style="font-size: 1.2em; text-align: justify; text-indent: 30px">
                 <%- hotel.hotel_description %>
+            </div>
+            <div class="ms-3">
+                <h5 class="ms-3">Зручності готелю:</h5>
+                <div>
+                    <ul>
+                        <% hotelAmenities.forEach((amenity, i) => { %>
+                            <li><%= amenity.hotel_amenity_name %></li>
+                        <% }) %>
+                    </ul>
+                </div>
             </div>
         </div>
 
         <div class="container my-5">
             <h2 class="mb-4 text-center">Список номерів</h2>
             <div class="table-responsive">
-                <table class="table table-bordered align-middle">
-                    <thead class="table-primary text-center">
+                <table class="roomsTable table table-bordered align-middle">
+                    <thead class="table-primary text-center" style="vertical-align: middle">
                     <tr>
                         <th>Назва номера</th>
+                        <th>Ліжка</th>
+                        <th>Тип номера</th>
+                        <th>Зручності номера</th>
+                        <th>Ціна за одну ніч</th>
+                        <th>Оберіть кількість місць</th>
+                        <th>Бронювання</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <% rooms.forEach(room => { %>
-                        <tr>
+                    <% rooms.forEach((room, i) => { %>
+                        <tr id="room-<%= room.room_id %>">
                             <td>
                                 <a class="room-name" href="#" style="font-size: large"
-                                        data-room-id="<%= room.room_id %>"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#roomModal">
+                                   onclick="showRoomModal(<%= room.room_id %>); return false">
                                     <%= room.room_name %>
                                 </a>
+                            </td>
+                            <td>
+                                <% roomBedTypes.filter(t => t.room_id == room.room_id).forEach(roomBedType => { %>
+                                    <%= roomBedType.bed_count + " × " + roomBedType.bed_name.toLowerCase() %><br>
+                                <% }) %>
+                            </td>
+                            <td>
+                                <%= room.room_type_name %>
+                            </td>
+                            <td>
+                                <ul>
+                                    <% roomAmenities.filter(a => a.room_id == room.room_id).forEach(roomAmenity => { %>
+                                        <li>
+                                            <%= roomAmenity.room_amenity_name %>
+                                        </li>
+                                    <% }) %>
+                                </ul>
+                            </td>
+                            <td class="text-center">
+                                <%= room.total_price_per_night + " ₴" %>
+                            </td>
+                            <td class="text-center">
+                                <select class="w-50 text-center room-capacity-select" data-index="<%= i %>">
+                                    <% for(let j = 0; j <= room.max_capacity; j++) { %>
+                                        <option value="<%= j %>"><%= j %></option>
+                                    <% } %>
+                                </select>
+                            </td>
+                            <td class="text-center">
+                                <span class="finalPrice" data-index="<%= i %>"></span>
+                                <a class="btn btn-sm btn-primary book-button disabled" href="#" data-index="<%= i %>">Забронювати</a>
                             </td>
                         </tr>
                     <% }) %>
                     </tbody>
                 </table>
             </div>
+
+            <div class="container my-5">
+                <div class="row align-items-center mb-4">
+                    <div class="col-auto">
+                        <div class="bg-primary text-white text-center rounded-4 d-flex align-items-center justify-content-center"
+                             style="width: 70px; height: 70px; font-size: 1.5rem; font-weight: bold;">
+                            <%= formatRating(hotelRating.average_rating)%>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <h2 class="mb-0"><%= getRatingDescription(hotelRating.average_rating) %></h2>
+                        <p class="text-muted mb-0"><%= getReviewDeclension(reviews.length)%></p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="mb-3">Категорії:</h4>
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2" style="flex: 1;">Персонал</span>
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: <%= hotelRating.average_staff_rating * 10%>%;"></div>
+                        </div>
+                        <span><%= formatRating(hotelRating.average_staff_rating) %></span>
+                    </div>
+
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2" style="flex: 1;">Комфорт</span>
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: <%= hotelRating.average_comfort_rating * 10%>%;"></div>
+                        </div>
+                        <span><%= formatRating(hotelRating.average_comfort_rating) %></span>
+                    </div>
+
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2" style="flex: 1;">Співвідношення ціна/якість</span>
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: <%= hotelRating.average_price_quality_rating * 10%>%;"></div>
+                        </div>
+                        <span><%= formatRating(hotelRating.average_price_quality_rating) %></span>
+                    </div>
+
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2" style="flex: 1;">Чистота</span>
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: <%= hotelRating.average_cleanliness_rating * 10%>%;"></div>
+                        </div>
+                        <span><%= formatRating(hotelRating.average_cleanliness_rating) %></span>
+                    </div>
+
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="me-2" style="flex: 1;">Місце розташування</span>
+                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar" style="width: <%= hotelRating.average_location_rating * 10%>%;"></div>
+                        </div>
+                        <span><%= formatRating(hotelRating.average_location_rating) %></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="container my-5">
+                <h2 class="mb-4 text-center <%= reviews.length === 0 ? "d-none" : "" %>" id="reviews">Відгуки</h2>
+                <div id="reviewsContainer" class="reviews-container">
+                    <% reviews.forEach(review => { %>
+                        <div class="review row mb-4 p-4 border rounded">
+                            <div class="col-3">
+                                <div class="row">
+                                    <div class="review-avatar col-auto" style="background-color: <%= getAvatarColor(review.user_id.toString()) %>;"><%= review.first_name.charAt(0) %></div>
+                                    <div class="col-9">
+                                        <h6 class="mb-0 d-inline"><%= review.first_name %></h6><br>
+                                        <div class="mb-0 d-inline" style="font-size: 0.9em">
+                                            <span class="mb-0 d-inline"><%= review.country %></span>
+                                            <span class="dot">•</span>
+                                            <span><%= getNightDeclension(calculateNights(review.check_in_datetime, review.check_out_datetime)) %></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="mt-2" style="font-size: small"><%= review.room_name %></div>
+                                    <div class="text-center mt-2 badge bg-primary"><%= formatDateToMonthYear(review.check_in_datetime) %></div>
+                                </div>
+                            </div>
+                            <div class="col-9 border-start">
+                                <div class="row d-flex justify-content-between">
+                                    <h5 class="review-title col-auto d-inline fw-bold col-10"><%= review.title %></h5>
+                                    <div class="rating col-auto d-flex align-items-center">
+                                        <span><%= formatRating(review.average_rating) %></span>
+                                    </div>
+                                </div>
+                                <p class="review-text"><i class="bi bi-emoji-smile text-success pe-2"></i><%= review.pros_description %></p>
+                                <p class="review-text"><i class="bi bi-emoji-frown text-danger pe-2"></i><%= review.cons_description %></p>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="review-footer">
+                                        <span class="badge rounded-pill bg-light text-dark"><%= review.stay_duration %></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
+        const rooms = <%- JSON.stringify(rooms) %>;
+        const roomModal = document.getElementById('roomModal');
+        const roomModalObject = new bootstrap.Modal(roomModal);
+        const roomPhotoCarouselInner = document.getElementById('roomPhotoCarouselInner');
+        const roomPhotoCounter = document.getElementById('roomPhotoCounter');
+        let roomCarousel = new bootstrap.Carousel(document.getElementById('roomPhotoCarousel'));
+
         document.addEventListener('DOMContentLoaded', function () {
             const photoModal = document.getElementById('photoModal');
-            const photoCarousel = document.getElementById('photoCarousel');
+            const photoCarousel = document.getElementById('hotelPhotoCarousel');
             const photoCounter = document.getElementById('photoCounter');
             const totalPhotos = <%= photographs.length %>;
             const carousel = new bootstrap.Carousel(photoCarousel);
@@ -273,22 +645,83 @@
             });
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const roomModal = document.getElementById('roomModal');
+        function showRoomModal(roomId) {
+            const roomPhotographs = <%- JSON.stringify(roomPhotographs) %>
+            const room = rooms.find(r => r.room_id == roomId);
+            const bedTypes = <%- JSON.stringify(roomBedTypes) %>;
+            const roomAmenities =<%- JSON.stringify(roomAmenities) %>;
+            room.bedTypes = bedTypes.filter(t => t.room_id == room.room_id)
+            room.photographs = roomPhotographs.filter(p => p.room_id == roomId)
+            room.amenities = roomAmenities.filter(a => a.room_id == room.room_id)
 
-            roomModal.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const roomId = button.getAttribute('data-room-id');
-                const rooms = <%- JSON.stringify(rooms) %>
-                const room = rooms.find(r => r.room_id == roomId);
-                if (room) {
-                    roomModal.querySelector('#roomModalLabel').textContent = room.room_name;
-                    roomModal.querySelector('#roomDescription').textContent = room.room_description;
-                    roomModal.querySelector('#roomSize').textContent = room.area;
-                    roomModal.querySelector('#smokingPermission').textContent = room.smoking_allowed ? 'присутній' : 'неприсутній';
+            if (room) {
+                roomModal.querySelector('#roomModalLabel').textContent = room.room_name;
+                roomModal.querySelector('#roomDescription').textContent = room.room_description;
+                roomModal.querySelector('#roomSize').textContent = room.area;
+                roomModal.querySelector('#smokingPermission').textContent = room.smoking_allowed ? 'є' : 'немає';
+                roomModal.querySelector('#roomBedTypes').innerHTML = room.bedTypes.map(bedType =>
+                    bedType.bed_count + " × " + bedType.bed_name.toLowerCase()
+                ).join(", ");
+                roomModal.querySelector('#roomAmenities').innerHTML = room.amenities.map(amenity =>
+                    "<li>" + amenity.room_amenity_name + "</li>"
+                ).join("");
+
+                roomPhotoCarouselInner.innerHTML = '';
+                room.photographs.forEach((photo, index) => {
+                    const activeClass = index === 0 ? 'active' : '';
+                    roomPhotoCarouselInner.innerHTML += `
+                        <div class="carousel-item ${activeClass}" data-bs-slide-to="${index}">
+                            <img src="${photo.room_photograph_url}" class="d-block w-100" alt="${photo.room_photograph_description}" title="${photo.room_photograph_description}">
+                        </div>
+                    `;
+                });
+
+                roomCarousel.to(0);
+                roomPhotoCounter.textContent = `Зображення 1 з ${room.photographs.length}`;
+
+                document.getElementById('roomPhotoCarousel').addEventListener('slid.bs.carousel', function () {
+                    const activeIndex = roomPhotoCarouselInner.querySelector('.carousel-item.active').getAttribute('data-bs-slide-to');
+                    roomPhotoCounter.textContent = `Зображення ${parseInt(activeIndex) + 1} з ${room.photographs.length}`;
+                });
+            }
+            roomModalObject.show();
+        }
+
+        document.querySelectorAll('.room-capacity-select').forEach(select => {
+            select.addEventListener('change', function () {
+                const selectedValue = parseInt(this.value);
+                const index = this.getAttribute('data-index');
+                const bookButton = document.querySelector(`.book-button[data-index="${index}"]`);
+                const finalPrice = Math.round(+rooms[index].total_price_per_night + (selectedValue - 1) * 0.25 * rooms[index].total_price_per_night);
+                document.querySelector(`.finalPrice[data-index="${index}"]`).innerHTML = selectedValue === 0 ? "" : "Остаточна ціна: " + finalPrice + " ₴<br>";
+                bookButton.setAttribute("href", `/room/${rooms[index].room_id}/booking?peopleCount=${selectedValue}`)
+                if (selectedValue > 0) {
+                    bookButton.classList.remove('disabled');
+                } else {
+                    bookButton.classList.add('disabled');
                 }
             });
         });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const hash = window.location.hash ? window.location.hash.substring(1) : "";
+            const roomId = hash.split("room-")[1];
+            if (roomId) {
+                document.getElementById("room-" + roomId).scrollIntoView({behavior: "instant"})
+                showRoomModal(roomId);
+            }
+        });
+
+        function calculateNights(checkinDate, checkoutDate) {
+            const checkin = new Date(checkinDate.toDateString());
+            const checkout = new Date(checkoutDate.toDateString());
+            if (checkin >= checkout) {
+                return 0;
+            }
+            const diffTime = checkout - checkin;
+            const diffDays = diffTime / (1000 * 3600 * 24);
+            return diffDays;
+        }
     </script>
 </div>
 </body>

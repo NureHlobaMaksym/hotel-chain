@@ -36,17 +36,71 @@
             font-weight: bold;
         }
 
-        #photoCarousel .carousel-item img {
+        #hotelPhotoCarousel .carousel-item img {
             object-fit: contain;
             object-position: center;
             overflow: hidden;
             height: 60vh;
         }
+
+        #roomPhotoCarousel .carousel-item img {
+            object-fit: contain;
+            object-position: center;
+            overflow: hidden;
+            height: 40vh;
+        }
+
+        .background-image {
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            z-index: -1;
+            display: block;
+            background-image: url('/img/background_hotel.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            width: 100%;
+            height: 100%;
+        }
+
+        .yellow_btn {
+            background-color: #ffa200;
+            color: white;
+        }
+
+        .yellow_btn:hover {
+            background-color: #ff8800;
+            color: white;
+        }
+
+        .roomsTable td{
+            vertical-align: top;
+        }
+
+        .easepick-wrapper {
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<% function getAvatarColor(userId) {
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+        hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const hueStep = 137;
+    const hue = Math.abs((hash * hueStep) % 360);
+
+    const saturation = 60;
+    const lightness = 45;
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+} %>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container">
         <a class="navbar-brand fs-3 ms-5" href="/hotels">Мережа готелів</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
@@ -54,20 +108,25 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
-<!--            <ul class="navbar-nav ms-auto">-->
-<!--                <li class="nav-item"><a class="nav-link active" href="#">Home</a></li>-->
-<!--                <li class="nav-item"><a class="nav-link" href="#">Features</a></li>-->
-<!--                <li class="nav-item"><a class="nav-link" href="#">Pricing</a></li>-->
+            <ul class="navbar-nav ms-auto d-flex flex-row">
+                <%if(typeof isLoggedIn !== "undefined" && isLoggedIn) { %>
+                    <a href="/profile" style="text-decoration: none">
+                        <li class="nav-item row d-flex align-items-center">
+                            <span class="nav-link review-avatar rounded-circle col-auto d-flex justify-content-center align-items-center text-white" style="width: 40px; height: 40px; font-size: 1.2em; background-color: <%= getAvatarColor(user.user_id.toString()) %>;"><%= user.first_name.charAt(0)%></span>
+                            <span class="col-auto text-white" style="font-size: 1.2em;"><%= user.first_name + " " + user.last_name%></span>
+                        </li>
+                    </a>
+                <% } %>
 <!--                <li class="nav-item dropdown">-->
 <!--                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"-->
 <!--                       data-bs-toggle="dropdown" aria-expanded="false">More</a>-->
-<!--                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">-->
-<!--                        <li><a class="dropdown-item" href="#">Action</a></li>-->
-<!--                        <li><a class="dropdown-item" href="#">Another action</a></li>-->
-<!--                        <li><a class="dropdown-item" href="#">Something else here</a></li>-->
-<!--                    </ul>-->
+<!--&lt;!&ndash;                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">&ndash;&gt;-->
+<!--&lt;!&ndash;                        <li><a class="dropdown-item" href="#">Action</a></li>&ndash;&gt;-->
+<!--&lt;!&ndash;                        <li><a class="dropdown-item" href="#">Another action</a></li>&ndash;&gt;-->
+<!--&lt;!&ndash;                        <li><a class="dropdown-item" href="#">Something else here</a></li>&ndash;&gt;-->
+<!--&lt;!&ndash;                    </ul>&ndash;&gt;-->
 <!--                </li>-->
-<!--            </ul>-->
+            </ul>
         </div>
     </div>
 </nav>

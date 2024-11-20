@@ -9,9 +9,14 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "type": "module",
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.1",
-    "mysql2": "^3.11.3"
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.3",
+    "star-rating.js": "^4.3.1"
   }
 }

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бронювання номера</title>
+</head>
+<body>
+<header>
+    <%- include('header'); %>
+</header>
+<div class="container my-5">
+    <h2 class="text-center mb-4">Бронювання номера</h2>
+    <div class="row d-flex justify-content-around">
+        <div class="card mb-4" style="width: 48%">
+            <div class="card-body">
+                <h5 class="card-title">Інформація про готель</h5>
+                <div class="mb-1 mt-4">
+                    <b class="form-label">Назва готелю:</b>
+                    <span><%= room.hotel_name %></span>
+                </div>
+                <div class="mb-1">
+                    <b class="form-label">Адреса готелю:</b>
+                    <span><%= room.full_addr %></span>
+                </div>
+                <div class="mb-1">
+                    <b class="form-label">Телефон готелю:</b>
+                    <span><%= room.hotel_phone_number %></span>
+                </div>
+                <div class="mb-1">
+                    <b class="form-label">Зручності готелю:</b>
+                    <ul>
+                        <% hotelAmenities.forEach(amenity => { %>
+                            <li><%= amenity.hotel_amenity_name %></li>
+                        <% }) %>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-4" style="width: 48%">
+            <div class="card-body">
+                <h5 class="card-title">Інформація про номер</h5>
+                <div class="mb-1 mt-4">
+                    <b class="form-label">Категорія номера:</b>
+                    <span><%= room.room_type_name %></span>
+                </div>
+                <div class="mb-1">
+                    <b class="form-label">Зручності номера:</b>
+                    <ul>
+                        <% roomAmenities.forEach(amenity => { %>
+                            <li><%= amenity.room_amenity_name %></li>
+                        <% }) %>
+                    </ul>
+                </div>
+                <div class="mb-1">
+                    <b class="form-label">Кількість осіб, що будуть проживати у номері:</b>
+                    <span id="peopleCount"></span>
+                </div>
+                <div class="mb-1">
+                    <b class="form-label">Ціна за проживання:</b>
+                    <span id="totalPrice"></span>
+                </div>
+                <div class="mb-1">
+                    <b class="form-label">Інформація про ліжко:</b>
+                    <span>
+                        <%= roomBedTypes.map(bedType =>
+                                bedType.bed_count + " × " + bedType.bed_name.toLowerCase()
+                        ).join(", "); %>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row d-flex justify-content-around">
+        <div class="card" style="width: 48%">
+            <div class="card-body">
+                <h5 class="card-title">Інформація про бронювальника</h5>
+                <div class="mb-3">
+                    <label for="firstName" class="form-label">Ім'я:</label>
+                    <input value="<%= user.first_name %>" type="text" class="form-control" disabled id="firstName"
+                           required>
+                </div>
+                <div class="mb-3">
+                    <label for="lastName" class="form-label">Прізвище:</label>
+                    <input value="<%= user.last_name %>" type="text" class="form-control" disabled id="lastName"
+                           required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Електронна пошта:</label>
+                    <input value="<%= user.email %>" type="email" class="form-control" disabled id="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="country" class="form-label">Країна проживання:</label>
+                    <input value="<%= user.country %>" type="text" class="form-control" disabled id="country" required>
+                </div>
+                <div class="mb-3">
+                    <label for="phone" class="form-label">Номер телефону:</label>
+                    <input value="<%= user.user_phone_number %>" type="tel" class="form-control" disabled id="phone"
+                           required>
+                </div>
+            </div>
+        </div>
+        <div class="card" style="width: 48%">
+            <div class="card-body">
+                <h5 class="card-title">Інформація про бронювання</h5>
+                <label for="checkinDate" class="form-label mt-4">Дата та час заїзду та виїзду:</label>
+                <input class="form-control" aria-describedby="invalidDateFeedback" id="datepicker" required>
+                <div class="invalid-feedback" id="invalidDateFeedback" style="display: none">Час заїзду має бути з 14:00
+                    до 23:00 (сьогодні — після поточного часу), а час виїзду — з 05:00 до 12:00.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bookingErrorModal" tabindex="-1" aria-labelledby="bookingErrorModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingErrorModalLabel">Помилка бронювання</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalErrorText">
+                    Номер вже зайнятий на обрані дати. Будь ласка, оберіть інші дати.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">ОК</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопка для бронювання -->
+    <div class="text-center mt-4">
+        <% if(booking) { %>
+            <button disabled class="btn btn-primary" onclick="editBooking()" id="submitButton">Редагувати</button>
+        <% } else { %>
+            <button disabled class="btn btn-primary" onclick="createBooking()" id="submitButton">Забронювати</button>
+        <% } %>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+<script>
+    const picker = new easepick.create({
+        element: document.getElementById('datepicker'),
+        format: "DD.MM.YYYY, HH:mm",
+        css: [
+            'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+        ],
+        plugins: ['RangePlugin', 'LockPlugin', 'TimePlugin'],
+        RangePlugin: {
+            tooltipNumber(num) {
+                return num - 1;
+            },
+            tooltip: false
+        },
+        LockPlugin: {
+            minDate: new Date(),
+            minDays: 2,
+        },
+        TimePlugin: {
+            format: "HH:mm"
+        },
+    });
+    let finalPrice = 0;
+    const maxPeopleCount = <%= room.max_capacity %>;
+    const booking = <%- JSON.stringify(booking) %>
+    const urlParams = new URLSearchParams(window.location.search);
+    const peopleCount = booking ? booking.number_of_guests : +urlParams.get("peopleCount");
+    const totalPricePerNight = <%= room.total_price_per_night %>;
+    document.getElementById("peopleCount").textContent = peopleCount;
+    if (peopleCount > maxPeopleCount) {
+        alert("Кількість місць, які ви хочете забронювати перевищує місткість номера");
+        window.location.href = "/hotels";
+    } else if (peopleCount === 0) {
+        alert("Неправильна адреса");
+        window.location.href = "/hotels";
+    }
+
+    updatePrice();
+
+    if (booking) {
+        picker.setStartDate(new Date(Date.parse(booking.check_in_datetime)))
+        picker.setEndDate(new Date(Date.parse(booking.check_out_datetime)))
+    }
+    picker.setStartTime(booking ? new Date(Date.parse(booking.check_in_datetime)).toTimeString() : "14:00")
+    picker.setEndTime(booking ? new Date(Date.parse(booking.check_out_datetime)).toTimeString() : "11:00")
+
+    function calculateNights(checkinDate, checkoutDate) {
+        const checkin = new Date(checkinDate.toDateString());
+        const checkout = new Date(checkoutDate.toDateString());
+        if (checkin >= checkout) {
+            alert('Дата виїзду повинна бути після дати заїзду');
+            return 0;
+        }
+        const diffTime = checkout - checkin;
+        const diffDays = diffTime / (1000 * 3600 * 24);
+        return diffDays;
+    }
+
+
+    setInterval(() => {
+        const pickerElement = document.getElementById('datepicker')
+        const checkInHour = +picker.getStartDate().getHours()
+        const checkOutHour = +picker.getEndDate().getHours()
+        const invalidFeedback = document.getElementById("invalidDateFeedback")
+        const submitButton = document.getElementById("submitButton")
+        console.log(checkInHour);
+        console.log(checkOutHour);
+        if (checkInHour < 14 || checkInHour >= 23 || checkOutHour < 5 || checkOutHour >= 12 || picker.getStartDate() <= new Date()) {
+            console.log(picker.getStartDate())
+            console.log(new Date())
+            pickerElement.classList.add("is-invalid")
+            invalidFeedback.style.display = "block"
+            submitButton.setAttribute("disabled", "")
+        } else {
+            pickerElement.classList.remove("is-invalid")
+            invalidFeedback.style.display = "none"
+            submitButton.removeAttribute("disabled")
+        }
+        updatePrice()
+    }, 100)
+
+    function formatTime(date) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+
+    function formatDate(date) {
+        const offset = date.getTimezoneOffset() * 60000;
+        const localDate = new Date(date - offset);
+        return localDate.toISOString().slice(0, 19).replace('T', ' ');
+    }
+
+    function updatePrice() {
+        const checkinDate = picker.getStartDate();
+        const checkoutDate = picker.getEndDate();
+        const nights = checkinDate && checkoutDate ? calculateNights(checkinDate, checkoutDate) : 1;
+        finalPrice = Math.round(+totalPricePerNight + (peopleCount - 1) * 0.25 * totalPricePerNight) * nights;
+        document.getElementById("totalPrice").textContent = finalPrice + " ₴";
+    }
+
+    async function editBooking() {
+        const bookingData = {
+            check_in_datetime: formatDate(picker.getStartDate()),
+            check_out_datetime: formatDate(picker.getEndDate()),
+            booking_price: finalPrice
+        };
+
+        try {
+            const response = await fetch(`/booking/${booking.booking_id}/edit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookingData)
+            });
+
+            if (response.ok) {
+                window.location.href = '/profile';
+            } else {
+                const errorData = await response.json();
+                document.getElementById('modalErrorText').textContent = errorData.message;
+                const bookingErrorModal = new bootstrap.Modal(document.getElementById('bookingErrorModal'));
+                bookingErrorModal.show();
+            }
+        } catch (error) {
+            console.error('Error editing booking:', error);
+            alert('Error editing booking. Please try again later.');
+        }
+    }
+
+    async function createBooking() {
+        const bookingData = {
+            room_id: <%= room.room_id %>,
+            check_in_datetime: formatDate(picker.getStartDate()),
+            check_out_datetime: formatDate(picker.getEndDate()),
+            number_of_guests: peopleCount,
+            booking_price: finalPrice
+        };
+
+        try {
+            const response = await fetch('/booking/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookingData)
+            });
+
+            if (response.ok) {
+                window.location.href = '/profile';
+            } else {
+                const errorData = await response.json();
+                document.getElementById('modalErrorText').textContent = errorData.message;
+                const bookingErrorModal = new bootstrap.Modal(document.getElementById('bookingErrorModal'));
+                bookingErrorModal.show();
+            }
+        } catch (error) {
+            console.error('Error creating booking:', error);
+            alert('Error creating booking. Please try again later.');
+        }
+    }
+</script>
+</body>
+</html>

@@ -8,6 +8,49 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
 <body>
+<% function getRatingDescription(rating) {
+    if (rating >= 9) {
+        return "Блискуче";
+    } else if (rating >= 8) {
+        return "Дуже добре";
+    } else if (rating >= 7) {
+        return "Добре";
+    } else if (rating >= 6) {
+        return "Задовільно";
+    } else if (rating >= 5) {
+        return "Посередньо";
+    } else if (rating >= 4) {
+        return "Нижче середнього";
+    } else if (rating >= 3) {
+        return "Погано";
+    } else if (rating >= 2) {
+        return "Дуже погано";
+    } else if (rating >= 1) {
+        return "Жахливо";
+    } else {
+        return "Немає оцінки";
+    }
+}
+
+function getReviewDeclension(n) {
+    if (n % 100 >= 11 && n % 100 <= 14) {
+        return `${n} відгуків`;
+    }
+    switch (n % 10) {
+        case 1:
+            return `${n} відгук`;
+        case 2:
+        case 3:
+        case 4:
+            return `${n} відгуки`;
+        default:
+            return `${n} відгуків`;
+    }
+}
+
+function formatRating(rating) {
+    return (+rating) % 1 === 0 ? +rating : (+rating).toFixed(1);
+} %>
 <header>
     <%- include('header'); %>
 </header>
@@ -22,11 +65,29 @@
                                  alt="<%= hotel.hotel_photograph_description %>"
                                  style="border-radius: 30px; object-fit: cover;">
                             <div class="col-sm-8">
-                                <h5 class="card-title"><%= hotel.hotel_name %></h5>
-                                <div>
-                                    <% for(let i = 0; i < hotel.star_rating; i++) { %>
-                                        <i class="bi bi-star-fill"></i>
-                                    <% } %>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <h5 class="card-title"><%= hotel.hotel_name %></h5>
+                                        <div>
+                                            <% for(let i = 0; i < hotel.star_rating; i++) { %>
+                                                <i class="bi bi-star-fill"></i>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="card-body row d-flex justify-content-end align-items-sm-start p-0 pe-2">
+                                            <div class="col-auto text-end">
+                                                <h4 style="font-size: 1em"><%= getRatingDescription(hotel.average_rating) %></h4>
+                                                <p class="text-muted" style="font-size: 0.8em"><%= getReviewDeclension(hotel.review_count) %><span class="<%= hotel.review_count === 0 ? "d-none" : ""%>"></span></p>
+                                            </div>
+                                            <div class="col-auto">
+                                                <div class="bg-primary text-white rounded-4 d-flex align-items-center justify-content-center"
+                                                     style="width: 40px; height: 40px; font-size: 1em; font-weight: bold;">
+                                                    <%= formatRating(hotel.average_rating)%>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <span class="card-text col-sm-3" style="font-size: 0.8em;"><%= hotel.city %></span>
                                 <span class="card-text col-sm-5 p-2"
