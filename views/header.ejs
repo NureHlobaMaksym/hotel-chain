@@ -11,13 +11,48 @@
             text-decoration: none;
         }
 
-        .hotel_link .card:hover {
-            transform: scale(1.05);
-            background-color: #f9f4ee;
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f9fafb;
+            color: #333;
+        }
+
+        .navbar {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-size: 1.75rem;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            color: #ffa200 !important;
+        }
+
+        .review-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
         }
 
         .hotel_link .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+
+        .hotel_link .card:hover {
+            transform: scale(1.05);
+            background-color: #fff8e6;
         }
 
         .overlay-text {
@@ -29,25 +64,27 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             color: white;
-            font-size: 24px;
+            font-size: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
         }
 
-        #hotelPhotoCarousel .carousel-item img {
+        .carousel-item img {
             object-fit: contain;
             object-position: center;
             overflow: hidden;
-            height: 60vh;
         }
 
-        #roomPhotoCarousel .carousel-item img {
-            object-fit: contain;
-            object-position: center;
-            overflow: hidden;
-            height: 40vh;
+        .yellow_btn {
+            background-color: #ffa200;
+            color: white;
+        }
+
+        .yellow_btn:hover {
+            background-color: #ff8800;
+            color: white;
         }
 
         .background-image {
@@ -63,20 +100,12 @@
             background-repeat: no-repeat;
             width: 100%;
             height: 100%;
+            opacity: 0.7;
         }
 
-        .yellow_btn {
-            background-color: #ffa200;
-            color: white;
-        }
-
-        .yellow_btn:hover {
-            background-color: #ff8800;
-            color: white;
-        }
-
-        .roomsTable td{
+        .roomsTable td {
             vertical-align: top;
+            padding: 10px;
         }
 
         .easepick-wrapper {
@@ -85,11 +114,17 @@
 
         .toggle-button {
             cursor: pointer;
-            color: blue;
+            color: #2563eb;
+            font-size: 1rem;
+            font-weight: 500;
             border: none;
             background: none;
+            transition: color 0.3s ease;
         }
 
+        .toggle-button:hover {
+            color: #184db1;
+        }
     </style>
 </head>
 <body>
@@ -108,32 +143,26 @@
 
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 } %>
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+<nav class="navbar navbar-expand-lg navbar-light bg-white">
     <div class="container">
-        <a class="navbar-brand fs-3 ms-5" href="/">Мережа готелів</a>
+        <a class="navbar-brand text-primary" href="/">Мережа готелів</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown"
                 aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
-            <ul class="navbar-nav ms-auto d-flex flex-row">
-                <%if(typeof isLoggedIn !== "undefined" && isLoggedIn) { %>
-                    <a href="/profile" style="text-decoration: none">
-                        <li class="nav-item row d-flex align-items-center">
-                            <span class="nav-link review-avatar rounded-circle col-auto d-flex justify-content-center align-items-center text-white" style="width: 40px; height: 40px; font-size: 1.2em; background-color: <%= getAvatarColor(user.user_id.toString()) %>;"><%= user.first_name.charAt(0)%></span>
-                            <span class="col-auto text-white" style="font-size: 1.2em;"><%= user.first_name + " " + user.last_name%></span>
+            <ul class="navbar-nav ms-auto d-flex flex-row align-items-center">
+                <% if (typeof isLoggedIn !== "undefined" && isLoggedIn) { %>
+                    <a href="/profile" class="d-flex align-items-center text-decoration-none text-dark">
+                        <li class="nav-item d-flex align-items-center">
+                        <span class="review-avatar rounded-circle d-flex justify-content-center align-items-center me-2"
+                              style="width: 40px; height: 40px; background-color: <%= getAvatarColor(user.user_id.toString()) %>;">
+                            <%= user.first_name.charAt(0) %>
+                        </span>
+                            <span class="text-dark" style="font-size: 1.2rem;"><%= user.first_name + " " + user.last_name %></span>
                         </li>
                     </a>
                 <% } %>
-<!--                <li class="nav-item dropdown">-->
-<!--                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"-->
-<!--                       data-bs-toggle="dropdown" aria-expanded="false">More</a>-->
-<!--&lt;!&ndash;                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">&ndash;&gt;-->
-<!--&lt;!&ndash;                        <li><a class="dropdown-item" href="#">Action</a></li>&ndash;&gt;-->
-<!--&lt;!&ndash;                        <li><a class="dropdown-item" href="#">Another action</a></li>&ndash;&gt;-->
-<!--&lt;!&ndash;                        <li><a class="dropdown-item" href="#">Something else here</a></li>&ndash;&gt;-->
-<!--&lt;!&ndash;                    </ul>&ndash;&gt;-->
-<!--                </li>-->
             </ul>
         </div>
     </div>
