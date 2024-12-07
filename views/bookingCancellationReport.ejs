@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Звіт про скасування бронювання</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            color: #333;
+        }
+        .details {
+            margin: 20px 0;
+            font-size: 16px;
+            color: #555;
+        }
+        .details table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .details th, .details td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .details th {
+            background: #f9f9f9;
+            color: #333;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Звіт про скасування бронювання</h1>
+        <p>Дата скасування: <%= bookingCancellationReport.cancellation_datetime %></p>
+    </div>
+    <div class="details">
+        <h2>Інформація про готель</h2>
+        <table>
+            <tr>
+                <th>Назва готелю</th>
+                <td><%= bookingCancellationReport.hotel_name %></td>
+            </tr>
+            <tr>
+                <th>Адреса</th>
+                <td><%= bookingCancellationReport.full_addr %></td>
+            </tr>
+            <tr>
+                <th>Номер телефону готелю</th>
+                <td><%= bookingCancellationReport.hotel_phone_number %></td>
+            </tr>
+        </table>
+    </div>
+    <div class="details">
+        <h2>Деталі бронювання</h2>
+        <table>
+            <tr>
+                <th>Ціна бронювання</th>
+                <td><%= bookingCancellationReport.booking_price %> UAH</td>
+            </tr>
+            <tr>
+                <th>Ціна, яку треба повернути готелю</th>
+                <td><%= (+bookingCancellationReport.refund_price) % 1 === 0 ?  Math.floor(+bookingCancellationReport.refund_price) : +bookingCancellationReport.refund_price; %> UAH</td>
+            </tr>
+            <tr>
+                <th>Дата заїзду</th>
+                <td><%= bookingCancellationReport.formatted_check_in %></td>
+            </tr>
+            <tr>
+                <th>Дата виїзду</th>
+                <td><%= bookingCancellationReport.formatted_check_out %></td>
+            </tr>
+        </table>
+    </div>
+    <div class="details">
+        <h2>Інформація про бронювальника</h2>
+        <table>
+            <tr>
+                <th>Ім'я</th>
+                <td><%= bookingCancellationReport.booker_name %></td>
+            </tr>
+            <tr>
+                <th>Електронна пошта</th>
+                <td><%= bookingCancellationReport.booker_email %></td>
+            </tr>
+            <tr>
+                <th>Номер телефону бронювальника</th>
+                <td><%= bookingCancellationReport.booker_phone %></td>
+            </tr>
+        </table>
+    </div>
+</div>
+</body>
+</html>

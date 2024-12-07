@@ -8,106 +8,476 @@
           integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
 <body>
-<% function getRatingDescription(rating) {
-    if (rating >= 9) {
-        return "Блискуче";
-    } else if (rating >= 8) {
-        return "Дуже добре";
-    } else if (rating >= 7) {
-        return "Добре";
-    } else if (rating >= 6) {
-        return "Задовільно";
-    } else if (rating >= 5) {
-        return "Посередньо";
-    } else if (rating >= 4) {
-        return "Нижче середнього";
-    } else if (rating >= 3) {
-        return "Погано";
-    } else if (rating >= 2) {
-        return "Дуже погано";
-    } else if (rating >= 1) {
-        return "Жахливо";
-    } else {
-        return "Немає оцінки";
-    }
-}
-
-function getReviewDeclension(n) {
-    if (n % 100 >= 11 && n % 100 <= 14) {
-        return `${n} відгуків`;
-    }
-    switch (n % 10) {
-        case 1:
-            return `${n} відгук`;
-        case 2:
-        case 3:
-        case 4:
-            return `${n} відгуки`;
-        default:
-            return `${n} відгуків`;
-    }
-}
-
-function formatRating(rating) {
-    return (+rating) % 1 === 0 ? +rating : (+rating).toFixed(1);
-} %>
 <header>
     <%- include('header'); %>
 </header>
-<div class="container">
-    <% hotels.forEach(hotel => { %>
-        <div class="row justify-content-center">
-            <div class="col-1 p-2" style="width: 60%;">
-                <a href="hotel/<%= hotel.hotel_id %>" class="hotel_link">
-                    <div class="card shadow-sm p-2" style="border-radius: 30px;">
-                        <div class="row">
-                            <img src="<%= hotel.hotel_photograph_url %>" class="col-sm-4"
-                                 alt="<%= hotel.hotel_photograph_description %>"
-                                 style="border-radius: 30px; object-fit: cover;">
-                            <div class="col-sm-8">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <h5 class="card-title"><%= hotel.hotel_name %></h5>
-                                        <div>
-                                            <% for(let i = 0; i < hotel.star_rating; i++) { %>
-                                                <i class="bi bi-star-fill"></i>
-                                            <% } %>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="card-body row d-flex justify-content-end align-items-sm-start p-0 pe-2">
-                                            <div class="col-auto text-end">
-                                                <h4 style="font-size: 1em"><%= getRatingDescription(hotel.average_rating) %></h4>
-                                                <p class="text-muted" style="font-size: 0.8em"><%= getReviewDeclension(hotel.review_count) %><span class="<%= hotel.review_count === 0 ? "d-none" : ""%>"></span></p>
-                                            </div>
-                                            <div class="col-auto">
-                                                <div class="bg-primary text-white rounded-4 d-flex align-items-center justify-content-center"
-                                                     style="width: 40px; height: 40px; font-size: 1em; font-weight: bold;">
-                                                    <%= formatRating(hotel.average_rating)%>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+<div class="py-2 bg-secondary-subtle">
+    <div class="container my-4 card">
+        <form id="searchForm" class="card-body" method="get">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <input
+                            type="text"
+                            class="form-control"
+                            id="hotelName"
+                            name="hotelName"
+                            placeholder="Введіть назву готелю"
+                            list="hotelOptions"
+                            value="<%= searchParams.hotelName %>"
+                            oninput="filterHotelsAndCities()"
+                    >
+                    <datalist id="hotelOptions">
+                        <% allHotels.forEach(hotel => { %>
+                            <option value="<%= hotel.hotel_name %>"></option>
+                        <% }) %>
+                    </datalist>
+                </div>
+                <div class="col-md-4">
+                    <input
+                            type="text"
+                            class="form-control"
+                            id="cityName"
+                            name="cityName"
+                            placeholder="Введіть місто"
+                            list="cityOptions"
+                            value="<%= searchParams.cityName %>"
+                            oninput="filterCitiesAndHotels()"
+                    >
+                    <datalist id="cityOptions">
+                        <% cities.forEach(city => { %>
+                            <option value="<%= city %>"></option>
+                        <% }) %>
+                    </datalist>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Пошук</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row">
+    <div class="row ms-3">
+        <div class="filters-container col-3 justify-content-center mt-4">
+            <div class="g-3">
+                <div class="card p-2">
+                    <label for="priceRange" class="form-label">Діапазон цін: від <span id="minPriceRangeValue"><%= hotelStatistics.overall_min_price %></span> ₴ до <span id="maxPriceRangeValue"><%= hotelStatistics.overall_max_price %> ₴</span></label>
+                    <tc-range-slider id="priceRangeSlider" step="100" min="<%= hotelStatistics.overall_min_price %>" max="<%= hotelStatistics.overall_max_price %>" value1="<%= hotelStatistics.overall_min_price %>" value2="<%= hotelStatistics.overall_max_price %>" generate-labels="true"></tc-range-slider>
+                </div>
+                <div class="card p-2 mt-2">
+                    <label for="guestRange" class="form-label">Кількість гостей: <span id="guestRangeValue"><%= hotelStatistics.overall_min_capacity %></span></label>
+                    <tc-range-slider id="guestRangeSlider" step="1" min="<%= hotelStatistics.overall_min_capacity %>" max="<%= hotelStatistics.overall_max_capacity %>" value1="<%= hotelStatistics.overall_min_capacity %>" generate-labels="true"></tc-range-slider>
+                </div>
+                <div>
+                    <div class="card p-2 mt-2">
+                        <strong class="form-label">Зручності готелю</strong>
+                        <% hotelAmenities.forEach((amenity, index) => { %>
+                            <% if (index < 5) { %>
+                                <div>
+                                    <input type="checkbox" class="hotelAmenityCheckbox" id="amenity_<%= amenity.hotel_amenity_id %>" name="amenities" value="<%= amenity.hotel_amenity_id %>">
+                                    <label for="amenity_<%= amenity.hotel_amenity_id %>"><%= amenity.hotel_amenity_name %></label>
                                 </div>
-                                <span class="card-text col-sm-3" style="font-size: 0.8em;"><%= hotel.city %></span>
-                                <span class="card-text col-sm-5 p-2"
-                                      style="font-size: 0.8em;"><%= `${hotel.distance_to_city_center_km} км до центру міста` %></span>
-                                <% if (hotel.near_subway) { %>
-                                    <span class="col-sm-4 p-2" style="font-size: 0.8em;">Поряд з метро</span>
+                            <% } %>
+                        <% }) %>
+
+                        <div class="collapse" id="moreHotelAmenities">
+                            <% hotelAmenities.forEach((amenity, index) => { %>
+                                <% if (index >= 5) { %>
+                                    <div>
+                                        <input type="checkbox" class="hotelAmenityCheckbox" id="amenity_<%= amenity.hotel_amenity_id %>" name="amenities" value="<%= amenity.hotel_amenity_id %>">
+                                        <label for="amenity_<%= amenity.hotel_amenity_id %>"><%= amenity.hotel_amenity_name %></label>
+                                    </div>
                                 <% } %>
-                                <div class="card-text mt-2 me-3" style="text-align: justify">
-                                    <%- hotel.hotel_description.length > 300 ? hotel.hotel_description.substring(0, 300) + '...' : hotel.hotel_description %>
-                                </div>
-                            </div>
+                            <% }) %>
                         </div>
+
+                        <!-- Кнопка для згортання/розгортання -->
+                        <button
+                                class="btn btn-link toggle-button"
+                                type="button"
+                                id="hotelAmenitiesToggle">
+                            <span id="hotelAmenitiesArrow" class="bi bi-chevron-down"></span>
+                            <span id="hotelAmenitiesText">Показати більше</span>
+                        </button>
                     </div>
-                </a>
+                    <div class="card p-2 mt-2">
+                        <strong class="form-label">Зручності номеру</strong>
+
+                        <% roomAmenities.forEach((amenity, index) => { %>
+                            <% if (index < 5) { %>
+                                <div>
+                                    <input type="checkbox" class="roomAmenityCheckbox" id="amenity_<%= amenity.room_amenity_id %>" name="amenities" value="<%= amenity.room_amenity_id %>">
+                                    <label for="amenity_<%= amenity.room_amenity_id %>"><%= amenity.room_amenity_name %></label>
+                                </div>
+                            <% } %>
+                        <% }) %>
+
+                        <!-- Додаткові зручності для номера -->
+                        <div class="collapse" id="moreRoomAmenities">
+                            <% roomAmenities.forEach((amenity, index) => { %>
+                                <% if (index >= 5) { %>
+                                    <div>
+                                        <input type="checkbox" class="roomAmenityCheckbox" id="amenity_<%= amenity.room_amenity_id %>" name="amenities" value="<%= amenity.room_amenity_id %>">
+                                        <label for="amenity_<%= amenity.room_amenity_id %>"><%= amenity.room_amenity_name %></label>
+                                    </div>
+                                <% } %>
+                            <% }) %>
+                        </div>
+
+                        <!-- Кнопка для згортання/розгортання -->
+                        <button
+                                class="btn btn-link toggle-button"
+                                type="button"
+                                id="roomAmenitiesToggle">
+                            <span id="roomAmenitiesArrow" class="bi bi-chevron-down"></span>
+                            <span id="roomAmenitiesText">Показати більше</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-    <% }); %>
+        <div class="col-9 mt-4">
+            <div class="row">
+                <div class="mb-3 col-auto ms-auto" style="padding-right: 80px">
+                    <select class="form-select d-flex justify-content-end" id="sortSelect">
+                        <option value="price-asc">Відсортувати за ціною (за зростанням)</option>
+                        <option value="price-desc">Відсортувати за ціною (за спаданням)</option>
+                        <option value="distance-asc">Відсортувати за відстанню до центру міста (за зростанням)</option>
+                        <option value="distance-desc">Відсортувати за відстанню до центру міста (за спаданням)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="container mt-1" id="hotelsContainer"></div>
+        </div>
+    </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toolcool-range-slider@4.0.28/dist/toolcool-range-slider.min.js"></script>
+<script>
+    const allHotels = <%- JSON.stringify(allHotels) %>;
+    const allCities = <%- JSON.stringify(cities) %>;
+    const searchParams = <%- JSON.stringify(searchParams)%>;
+    document.addEventListener('DOMContentLoaded', () => {
+        // Функція для керування розгортанням/згортанням
+        const toggleCollapse = (toggleId, contentId, arrowId, textId) => {
+            const toggleButton = document.getElementById(toggleId);
+            const content = document.getElementById(contentId);
+            const arrow = document.getElementById(arrowId);
+            const text = document.getElementById(textId);
+
+            toggleButton.addEventListener('click', () => {
+                if (content.classList.contains('show')) {
+                    // Згортаємо
+                    content.classList.remove('show');
+                    arrow.classList.remove('bi-chevron-up');
+                    arrow.classList.add('bi-chevron-down');
+                    text.textContent = 'Показати більше';
+                } else {
+                    // Розгортаємо
+                    content.classList.add('show');
+                    arrow.classList.remove('bi-chevron-down');
+                    arrow.classList.add('bi-chevron-up');
+                    text.textContent = 'Показати менше';
+                }
+            });
+        };
+
+        // Ініціалізація для зручностей готелю
+        toggleCollapse('hotelAmenitiesToggle', 'moreHotelAmenities', 'hotelAmenitiesArrow', 'hotelAmenitiesText');
+
+        // Ініціалізація для зручностей номера
+        toggleCollapse('roomAmenitiesToggle', 'moreRoomAmenities', 'roomAmenitiesArrow', 'roomAmenitiesText');
+    });
+
+    function filterHotelsAndCities() {
+        const hotelInput = document.getElementById("hotelName").value.toLowerCase();
+        const hotelOptions = document.getElementById("hotelOptions");
+        const cityOptions = document.getElementById("cityOptions");
+
+        // Очистити попередні варіанти
+        hotelOptions.innerHTML = "";
+        cityOptions.innerHTML = "";
+
+        if (hotelInput.length > 0) {
+            // Фільтруємо готелі за назвою
+            const filteredHotels = allHotels.filter(hotel =>
+                hotel.hotel_name.toLowerCase().includes(hotelInput)
+            );
+
+            filteredHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+
+            // Оновлюємо підказки для міст
+            const filteredCities = [...new Set(filteredHotels.map(hotel => hotel.city))];
+            filteredCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+        } else {
+            allHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+
+            allCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+        }
+    }
+
+    function filterCitiesAndHotels() {
+        const cityInput = document.getElementById("cityName").value.toLowerCase();
+        const cityOptions = document.getElementById("cityOptions");
+        const hotelOptions = document.getElementById("hotelOptions");
+
+        cityOptions.innerHTML = "";
+        hotelOptions.innerHTML = "";
+
+        if (cityInput.length > 0) {
+            // Фільтруємо міста і відповідні готелі
+            const filteredHotels = allHotels.filter(hotel =>
+                hotel.city.toLowerCase().includes(cityInput)
+            );
+
+            // Оновлюємо підказки для міст
+            const filteredCities = [...new Set(filteredHotels.map(hotel => hotel.city))];
+            filteredCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+
+            // Оновлюємо підказки для готелів
+            filteredHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+        } else {
+            // Показати всі готелі і міста
+            allHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+
+            allCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+        }
+    }
+
+    async function updateHotels() {
+        const [sortBy, order] = document.getElementById('sortSelect').value.split('-')
+        const guestCount = document.getElementById("guestRangeSlider").value1
+        const priceRangeMin = document.getElementById("priceRangeSlider").value1
+        const priceRangeMax = document.getElementById("priceRangeSlider").value2
+        let hotelAmenities = [];
+        let roomAmenities = [];
+        document.querySelectorAll(".hotelAmenityCheckbox").forEach(checkBox => {
+            if(checkBox.checked) {
+                hotelAmenities.push(checkBox.value)
+            }
+        })
+        document.querySelectorAll(".roomAmenityCheckbox").forEach(checkBox => {
+            if(checkBox.checked) {
+                roomAmenities.push(checkBox.value)
+            }
+        })
+        try {
+            const hotelName = document.getElementById("hotelName").value
+            const cityName = document.getElementById("cityName").value
+            const response = await fetch(`/hotelSearch?hotelName=${hotelName}&cityName=${cityName}&guestCount=${guestCount}&priceRangeMin=${priceRangeMin}&priceRangeMax=${priceRangeMax}&hotelAmenities=${hotelAmenities.join(",")}&roomAmenities=${roomAmenities.join(",")}&sortBy=${sortBy}&order=${order}`);
+            const hotels = (await response.json()).hotels;
+            const hotelsContainer = document.getElementById("hotelsContainer");
+            if(hotels.length === 0) {
+                hotelsContainer.innerHTML = `<h3 class="text-center mt-4">Результатів немає</h3>`
+            } else {
+                hotelsContainer.innerHTML = ""
+            }
+            hotels.forEach(hotel => {
+                let starsHTML = "";
+                for(let i = 0; i < hotel.star_rating; i++) {
+                    starsHTML += `<i class="bi bi-star-fill"></i>`
+                }
+                hotelsContainer.innerHTML += `
+                <div class="row justify-content-center">
+                    <div class="col-1 p-2" style="width: 90%;">
+                        <a href="hotel/${hotel.hotel_id}" class="hotel_link">
+                            <div class="card shadow-sm p-2" style="border-radius: 30px;">
+                                <div class="row">
+                                    <img src="${hotel.hotel_photograph_url}" class="col-sm-4"
+                                         alt="${hotel.hotel_photograph_description}"
+                                         style="border-radius: 30px; object-fit: cover;">
+                                    <div class="col-sm-8">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <h5 class="card-title">${hotel.hotel_name}</h5>
+                                                <div>${starsHTML}</div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="card-body row d-flex justify-content-end align-items-sm-start p-0 pe-2">
+                                                    <div class="col-auto text-end">
+                                                        <h4 style="font-size: 1em">${getRatingDescription(hotel.average_rating)}</h4>
+                                                        <p class="text-muted"
+                                                           style="font-size: 0.8em">${getReviewDeclension(hotel.review_count)}
+                                                            <span class="${hotel.review_count === 0 ? "d-none" : ""}"></span>
+                                                        </p>
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <div class="bg-primary text-white rounded-4 d-flex align-items-center justify-content-center"
+                                                             style="width: 40px; height: 40px; font-size: 1em; font-weight: bold;">
+                                                            ${formatRating(hotel.average_rating)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span class="card-text col-sm-3" style="font-size: 0.8em;">${hotel.city}</span>
+                                        <span class="card-text col-sm-5 p-2"
+                                              style="font-size: 0.8em;">${hotel.distance_to_city_center_km} км до центру міста</span>
+                                        ${hotel.near_subway ? `<span class="col-sm-4 p-2" style="font-size: 0.8em;">Поряд з метро</span>` : ""}
+                                        <div class="card-text mt-2 me-3" style="text-align: justify">
+                                            ${hotel.hotel_description.length > 300 ? hotel.hotel_description.substring(0, 300) + '...' : hotel.hotel_description}
+                                        </div>
+                                        <div class="card-text row mb-2 d-flex justify-content-end pe-3" style="text-align: justify">
+                                            <h6 class="col-3 text-center bg-secondary-subtle rounded-4">
+                                                <p class="mt-2">1 ніч, 1 людина</p>
+                                                <div class="mb-2">${hotel.min_price_with_selected_amenities} ₴</div>
+                                            </h6>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                `
+            })
+            window.history.replaceState({}, null, `hotels?hotelName=${hotelName}&cityName=${cityName}`);
+        } catch (error) {
+            console.error('Помилка при завантаженні сторінки:', error);
+        }
+    }
+
+    function updateSort() {
+        const sortBy = document.getElementById('sort-by').value;
+        let sortParameter = '';
+
+        switch (sortBy) {
+            case 'min-price-asc':
+                sortParameter = 'min_total_price_per_night ASC';
+                break;
+            case 'min-price-desc':
+                sortParameter = 'min_total_price_per_night DESC';
+                break;
+            case 'distance-asc':
+                sortParameter = 'distance_to_city_center_km ASC';
+                break;
+            case 'distance-desc':
+                sortParameter = 'distance_to_city_center_km DESC';
+                break;
+        }
+
+        // Update the URL with the selected sorting parameter
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('sort', sortParameter);
+
+        // Perform the search with the updated sort parameter
+        window.location.href = currentUrl.toString();
+    }
+
+    function getRatingDescription(rating) {
+        if (rating >= 9) {
+            return "Блискуче";
+        } else if (rating >= 8) {
+            return "Дуже добре";
+        } else if (rating >= 7) {
+            return "Добре";
+        } else if (rating >= 6) {
+            return "Задовільно";
+        } else if (rating >= 5) {
+            return "Посередньо";
+        } else if (rating >= 4) {
+            return "Нижче середнього";
+        } else if (rating >= 3) {
+            return "Погано";
+        } else if (rating >= 2) {
+            return "Дуже погано";
+        } else if (rating >= 1) {
+            return "Жахливо";
+        } else {
+            return "Немає оцінки";
+        }
+    }
+
+    function getReviewDeclension(n) {
+        if (n % 100 >= 11 && n % 100 <= 14) {
+            return `${n} відгуків`;
+        }
+        switch (n % 10) {
+            case 1:
+                return `${n} відгук`;
+            case 2:
+            case 3:
+            case 4:
+                return `${n} відгуки`;
+            default:
+                return `${n} відгуків`;
+        }
+    }
+
+    function formatRating(rating) {
+        return (+rating) % 1 === 0 ? +rating : (+rating).toFixed(1);
+    }
+
+    document.getElementById("searchForm").addEventListener("submit", event => {
+        event.preventDefault()
+        updateHotels();
+    })
+
+    document.getElementById("priceRangeSlider").addEventListener("change", event => {
+        document.getElementById("minPriceRangeValue").textContent = event.detail.value1;
+        document.getElementById("maxPriceRangeValue").textContent = event.detail.value2;
+    })
+
+    document.getElementById("guestRangeSlider").addEventListener("change", event => {
+        document.getElementById("guestRangeValue").textContent = event.detail.value1;
+    })
+
+    document.getElementById("priceRangeSlider").addEventListener("onMouseUp", event => {
+        updateHotels();
+    })
+
+    document.getElementById("guestRangeSlider").addEventListener("onMouseUp", event => {
+        updateHotels();
+    })
+
+    document.querySelectorAll(".hotelAmenityCheckbox").forEach(checkBox => {
+        checkBox.addEventListener("click", () => updateHotels())
+    })
+
+    document.querySelectorAll(".roomAmenityCheckbox").forEach(checkBox => {
+        checkBox.addEventListener("click", () => updateHotels())
+    })
+
+    document.getElementById('sortSelect').addEventListener('change', function() {
+        updateHotels()
+    });
+    filterHotelsAndCities();
+    updateHotels();
+</script>
 </body>
 </html>

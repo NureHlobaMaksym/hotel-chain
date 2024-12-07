@@ -15,6 +15,7 @@
     "cookie-parser": "^1.4.7",
     "ejs": "^3.1.10",
     "express": "^4.21.1",
+    "html-pdf": "^3.0.1",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.3",
     "star-rating.js": "^4.3.1"

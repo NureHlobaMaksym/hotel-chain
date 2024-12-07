@@ -198,9 +198,9 @@
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                 Скасувати
                             </button>
-                            <button type="button" class="btn btn-danger" id="confirmDeleteButton">Скасувати
+                            <a type="button" class="btn btn-danger" id="confirmDeleteButton">Скасувати
                                 бронювання
-                            </button>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -211,7 +211,7 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="editModalLabel">Редагувати профіль</h5>
+                            <h5 class="modal-title" id="editModalLabel">Редагування профілю</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрити"></button>
                         </div>
                         <form id="editProfileForm">
@@ -286,8 +286,11 @@
                                      style="border-radius: 30px; object-fit: cover; max-height: 100px">
                                 <div class="col-sm-8">
                                     <div class="row pe-2">
-                                        <h5 class="card-title col-6"><a href="/hotel/${booking.hotel_id}">${booking.hotel_name}</a></h5>
-                                        <div class="text-end col-6" style="font-size: large; display: ${booking.status === "Активне" ? 'block' : 'none'}">
+                                        <div class="col-6">
+                                            <h6 class="card-title d-inline"><a href="/hotel/${booking.hotel_id}">${booking.hotel_name}</a></h6>
+                                            <a class="text-start d-inline text-secondary" href="/booking/${booking.booking_id}/report"><i class="bi bi-download"></i></a>
+                                        </div>
+                                        <div class="text-end col-6" style="font-size: large; display: ${booking.status === "Активне" ? 'inline' : 'none'}">
                                             <a href="/booking/${booking.booking_id}/edit"><i class="bi bi-pencil-square text-primary"></i></a>
                                             <a href="#" onclick="openCancelModal('${booking.booking_id}'); return false;"><i class="bi bi-x-square text-danger"></i></a>
                                         </div>
@@ -365,8 +368,31 @@
     function openCancelModal(bookingId) {
         const confirmButton = document.getElementById('confirmDeleteButton');
         const confirmCancelModal = new bootstrap.Modal(document.getElementById('confirmCancelModal'));
-        confirmButton.onclick = function () {
+        confirmButton.onclick = async function () {
             confirmCancelModal.hide();
+            await fetch(`/booking/${bookingId}/cancellationReport`)
+                .then(res => {
+                    const contentDisposition = res.headers.get('Content-Disposition');
+                    let fileName = 'download.pdf';
+                    if (contentDisposition && contentDisposition.includes('filename')) {
+                        const matches = contentDisposition.match(/filename*?="?([^"]+)"?/);
+                        if (matches && matches[1]) {
+                            fileName = decodeURIComponent(matches[1]);
+                        }
+                    }
+                    return res.blob().then(blob => ({blob, fileName}));
+                })
+                .then(({blob, fileName}) => {
+                    const fileUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = fileUrl;
+                    link.download = fileName;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(fileUrl);
+                })
+                .catch(err => console.error('Error downloading file:', err));
             deleteBooking(bookingId);
         };
         confirmCancelModal.show();

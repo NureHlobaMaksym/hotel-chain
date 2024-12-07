@@ -454,8 +454,59 @@ function getRatingDescription(rating) {
             </div>
         </div>
 
-        <div class="container my-5">
-            <h2 class="mb-4 text-center">Список номерів</h2>
+        <div class="container">
+            <div class="mt-5 mb-2 d-flex justify-content-center row">
+                <div class="filter-block col-4 p-3 me-4 ms-4 my-auto">
+                    <div class="row g-3 align-items-center card p-3">
+                        <label for="guestRangeSlider" class="form-label">Кількість гостей: <span id="guestRangeValue">1</span></label>
+                        <tc-range-slider
+                                id="guestRangeSlider"
+                                step="1"
+                                min="1"
+                                max="<%= max_capacity_in_hotel.max_capacity_in_hotel %>"
+                                value1="1"
+                                generate-labels="true"
+                        ></tc-range-slider>
+                        <input type="text" id="datepicker" placeholder="Оберіть дати" class="form-control">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 card">
+                        <div class="row">
+                            <div class="ms-auto">
+                                <select class="form-select d-flex justify-content-end" id="sortSelect">
+                                    <option value="type_asc">Відсортувати за типом номера (в алфавітному порядку)</option>
+                                    <option value="price_asc">Відсортувати за ціною (за зростанням)</option>
+                                    <option value="price_desc">Відсортувати за ціною (за спаданням)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="container mt-1" id="hotelsContainer"></div>
+                    </div>
+                    <form id="searchForm" class="card p-3 mt-2" method="get">
+                        <div class="row">
+                            <div class="col-md-8 pe-lg-3">
+                                <input
+                                        type="text"
+                                        class="form-control"
+                                        id="roomName"
+                                        name="roomName"
+                                        placeholder="Введіть назву номера"
+                                        list="roomOptions"
+                                >
+                                <datalist id="roomOptions">
+                                    <% allRooms.forEach(room => { %>
+                                        <option value="<%= room.room_name %>"></option>
+                                    <% }) %>
+                                </datalist>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">Пошук</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <div class="table-responsive">
                 <table class="roomsTable table table-bordered align-middle">
                     <thead class="table-primary text-center" style="vertical-align: middle">
@@ -469,50 +520,9 @@ function getRatingDescription(rating) {
                         <th>Бронювання</th>
                     </tr>
                     </thead>
-                    <tbody>
-                    <% rooms.forEach((room, i) => { %>
-                        <tr id="room-<%= room.room_id %>">
-                            <td>
-                                <a class="room-name" href="#" style="font-size: large"
-                                   onclick="showRoomModal(<%= room.room_id %>); return false">
-                                    <%= room.room_name %>
-                                </a>
-                            </td>
-                            <td>
-                                <% roomBedTypes.filter(t => t.room_id == room.room_id).forEach(roomBedType => { %>
-                                    <%= roomBedType.bed_count + " × " + roomBedType.bed_name.toLowerCase() %><br>
-                                <% }) %>
-                            </td>
-                            <td>
-                                <%= room.room_type_name %>
-                            </td>
-                            <td>
-                                <ul>
-                                    <% roomAmenities.filter(a => a.room_id == room.room_id).forEach(roomAmenity => { %>
-                                        <li>
-                                            <%= roomAmenity.room_amenity_name %>
-                                        </li>
-                                    <% }) %>
-                                </ul>
-                            </td>
-                            <td class="text-center">
-                                <%= room.total_price_per_night + " ₴" %>
-                            </td>
-                            <td class="text-center">
-                                <select class="w-50 text-center room-capacity-select" data-index="<%= i %>">
-                                    <% for(let j = 0; j <= room.max_capacity; j++) { %>
-                                        <option value="<%= j %>"><%= j %></option>
-                                    <% } %>
-                                </select>
-                            </td>
-                            <td class="text-center">
-                                <span class="finalPrice" data-index="<%= i %>"></span>
-                                <a class="btn btn-sm btn-primary book-button disabled" href="#" data-index="<%= i %>">Забронювати</a>
-                            </td>
-                        </tr>
-                    <% }) %>
-                    </tbody>
+                    <tbody id="roomsTableBody"></tbody>
                 </table>
+                <div id="noResults"></div>
             </div>
 
             <div class="container my-5">
@@ -616,14 +626,137 @@ function getRatingDescription(rating) {
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/toolcool-range-slider@4.0.28/dist/toolcool-range-slider.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
 
     <script>
-        const rooms = <%- JSON.stringify(rooms) %>;
+        let rooms = [];
+        let isModalShown = false;
         const roomModal = document.getElementById('roomModal');
         const roomModalObject = new bootstrap.Modal(roomModal);
         const roomPhotoCarouselInner = document.getElementById('roomPhotoCarouselInner');
         const roomPhotoCounter = document.getElementById('roomPhotoCounter');
+        const hotelId = <%- JSON.stringify(hotel.hotel_id)%>;
+        const roomBedTypes = <%- JSON.stringify(roomBedTypes)%>;
+        const roomAmenities = <%- JSON.stringify(roomAmenities)%>;
         let roomCarousel = new bootstrap.Carousel(document.getElementById('roomPhotoCarousel'));
+
+        const picker = new easepick.create({
+            element: document.getElementById('datepicker'),
+            format: "DD.MM.YYYY, HH:mm",
+            css: [
+                'https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.css',
+            ],
+            plugins: ['RangePlugin', 'LockPlugin', 'TimePlugin'],
+            RangePlugin: {
+                tooltipNumber(num) {
+                    return num - 1;
+                },
+                tooltip: false
+            },
+            LockPlugin: {
+                minDate: new Date(),
+                minDays: 2,
+            },
+            TimePlugin: {
+                format: "HH:mm"
+            },
+        });
+        picker.setStartTime("14:00")
+        picker.setEndTime("11:00")
+
+        async function loadRooms() {
+            const checkinDate = picker.getStartDate();
+            const checkoutDate = picker.getEndDate();
+            let startDate = '';
+            let endDate = '';
+            if(checkinDate != null && checkoutDate != null) {
+                startDate = checkinDate ? checkinDate.toISOString() : '';
+                endDate = checkoutDate ? checkoutDate.toISOString() : '';
+            }
+            const guestCount = document.getElementById("guestRangeSlider").value1
+            const sortBy = document.getElementById("sortSelect").value
+            const roomName = document.getElementById("roomName").value;
+            const response = await fetch(`/hotel/${hotelId}/rooms?roomName=${roomName}&startDate=${startDate}&endDate=${endDate}&guestCount=${guestCount}&sortBy=${sortBy}`);
+            rooms = (await response.json()).rooms;
+            const noResults = document.getElementById("noResults");
+            const roomsTableBody = document.getElementById("roomsTableBody");
+            roomsTableBody.innerHTML = "";
+            if (rooms.length === 0) {
+                noResults.innerHTML = `<h3 class="text-center mt-4">Результатів не знайдено</h3>`;
+            }
+            rooms.forEach((room, i) => {
+                let bedTypes = "";
+                let amenities = "";
+                let capacities = "";
+                roomBedTypes.filter(t => t.room_id == room.room_id).forEach(roomBedType => {
+                    bedTypes += `${roomBedType.bed_count + " × " + roomBedType.bed_name.toLowerCase()}<br>`;
+                });
+                roomAmenities.filter(a => a.room_id == room.room_id).forEach(roomAmenity => {
+                    amenities += `<li>${roomAmenity.room_amenity_name}</li>`;
+                });
+                for (let j = 0; j <= room.max_capacity; j++) {
+                    capacities += `<option value="${j}">${j}</option>`;
+                }
+                roomsTableBody.innerHTML += `
+                     <tr id="room-${room.room_id}">
+                         <td>
+                             <a class="room-name" href="#" style="font-size: large"
+                                onclick="showRoomModal(${room.room_id}); return false">
+                                 ${room.room_name}
+                             </a>
+                         </td>
+                         <td>
+                             ${bedTypes}
+                         </td>
+                         <td>
+                             ${room.room_type_name}
+                         </td>
+                         <td>
+                             <ul>
+                                 ${amenities}
+                             </ul>
+                         </td>
+                         <td class="text-center">
+                             ${room.total_price_per_night + " ₴"}
+                         </td>
+                         <td class="text-center">
+                             <select class="w-50 text-center room-capacity-select" data-index="${i}">
+                                 ${capacities}
+                             </select>
+                         </td>
+                         <td class="text-center">
+                             <span class="finalPrice" data-index="${i}"></span>
+                             <a class="btn btn-sm btn-primary book-button disabled" href="#" data-index="${i}">Забронювати</a>
+                         </td>
+                     </tr>
+                 `;
+            });
+
+            document.querySelectorAll('.room-capacity-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const selectedValue = parseInt(this.value);
+                    const index = this.getAttribute('data-index');
+                    const bookButton = document.querySelector(`.book-button[data-index="${index}"]`);
+                    const finalPrice = Math.round(+rooms[index].total_price_per_night + (selectedValue - 1) * 0.25 * rooms[index].total_price_per_night);
+                    document.querySelector(`.finalPrice[data-index="${index}"]`).innerHTML = selectedValue === 0 ? "" : "Остаточна ціна: " + finalPrice + " ₴<br>";
+                    bookButton.setAttribute("href", `/room/${rooms[index].room_id}/booking?peopleCount=${selectedValue}`);
+                    if (selectedValue > 0) {
+                        bookButton.classList.remove('disabled');
+                    } else {
+                        bookButton.classList.add('disabled');
+                    }
+                });
+            });
+
+            const hash = window.location.hash ? window.location.hash.substring(1) : "";
+            const roomId = hash.split("room-")[1];
+            if (roomId && !isModalShown) {
+                document.getElementById("room-" + roomId).scrollIntoView({behavior: "instant"})
+                showRoomModal(roomId);
+                isModalShown = true;
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', function () {
             const photoModal = document.getElementById('photoModal');
@@ -687,41 +820,25 @@ function getRatingDescription(rating) {
             roomModalObject.show();
         }
 
-        document.querySelectorAll('.room-capacity-select').forEach(select => {
-            select.addEventListener('change', function () {
-                const selectedValue = parseInt(this.value);
-                const index = this.getAttribute('data-index');
-                const bookButton = document.querySelector(`.book-button[data-index="${index}"]`);
-                const finalPrice = Math.round(+rooms[index].total_price_per_night + (selectedValue - 1) * 0.25 * rooms[index].total_price_per_night);
-                document.querySelector(`.finalPrice[data-index="${index}"]`).innerHTML = selectedValue === 0 ? "" : "Остаточна ціна: " + finalPrice + " ₴<br>";
-                bookButton.setAttribute("href", `/room/${rooms[index].room_id}/booking?peopleCount=${selectedValue}`)
-                if (selectedValue > 0) {
-                    bookButton.classList.remove('disabled');
-                } else {
-                    bookButton.classList.add('disabled');
-                }
-            });
+        picker.on('select', (e) => {
+            loadRooms();
         });
 
-        document.addEventListener("DOMContentLoaded", function () {
-            const hash = window.location.hash ? window.location.hash.substring(1) : "";
-            const roomId = hash.split("room-")[1];
-            if (roomId) {
-                document.getElementById("room-" + roomId).scrollIntoView({behavior: "instant"})
-                showRoomModal(roomId);
-            }
+        document.getElementById("guestRangeSlider").addEventListener("change", event => {
+            document.getElementById("guestRangeValue").textContent = event.detail.value1;
+            loadRooms();
+        })
+
+        document.getElementById("searchForm").addEventListener("submit", event => {
+            event.preventDefault()
+            loadRooms();
+        })
+
+        document.getElementById('sortSelect').addEventListener('change', function() {
+            loadRooms()
         });
 
-        function calculateNights(checkinDate, checkoutDate) {
-            const checkin = new Date(checkinDate.toDateString());
-            const checkout = new Date(checkoutDate.toDateString());
-            if (checkin >= checkout) {
-                return 0;
-            }
-            const diffTime = checkout - checkin;
-            const diffDays = diffTime / (1000 * 3600 * 24);
-            return diffDays;
-        }
+        loadRooms()
     </script>
 </div>
 </body>

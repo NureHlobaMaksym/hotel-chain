@@ -6,6 +6,7 @@ import bookingRoutes from "./routes/bookingRoutes.js";
 import authenticationRoutes from "./routes/authenticationRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import indexRoutes from "./routes/indexRoutes.js";
 
 const app = express();
 const port = 3000;
@@ -20,6 +21,7 @@ app.use("/", bookingRoutes);
 app.use("/", hotelRoutes);
 app.use("/", profileRoutes);
 app.use("/", reviewRoutes);
+app.use("/", indexRoutes);
 
 app.listen(port, () => {
     console.log("Server listening on port ${port}");

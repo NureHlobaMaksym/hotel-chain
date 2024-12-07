@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Статистика сайту</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+</head>
+<body>
+<% function getRatingDescription(rating) {
+    if (rating >= 9) {
+        return "Блискуче";
+    } else if (rating >= 8) {
+        return "Дуже добре";
+    } else if (rating >= 7) {
+        return "Добре";
+    } else if (rating >= 6) {
+        return "Задовільно";
+    } else if (rating >= 5) {
+        return "Посередньо";
+    } else if (rating >= 4) {
+        return "Нижче середнього";
+    } else if (rating >= 3) {
+        return "Погано";
+    } else if (rating >= 2) {
+        return "Дуже погано";
+    } else if (rating >= 1) {
+        return "Жахливо";
+    } else {
+        return "Немає оцінки";
+    }
+}
+
+function getReviewDeclension(n) {
+    if (n % 100 >= 11 && n % 100 <= 14) {
+        return `${n} відгуків`;
+    }
+    switch (n % 10) {
+        case 1:
+            return `${n} відгук`;
+        case 2:
+        case 3:
+        case 4:
+            return `${n} відгуки`;
+        default:
+            return `${n} відгуків`;
+    }
+}
+
+function formatRating(rating) {
+    return (+rating) % 1 === 0 ? +rating : (+rating).toFixed(1);
+} %>
+<header>
+    <%- include('header'); %>
+</header>
+<div class="py-2 bg-secondary-subtle">
+    <div class="container my-4 card">
+        <form class="card-body" method="get" action="/hotels">
+            <div class="row g-2 align-items-center">
+                <!-- Поле для введення назви готелю -->
+                <div class="col-md-4">
+                    <input
+                            type="text"
+                            class="form-control"
+                            id="hotelName"
+                            name="hotelName"
+                            placeholder="Введіть назву готелю"
+                            list="hotelOptions"
+                            oninput="filterHotelsAndCities()"
+                    >
+                    <!-- Випадаючий список підказок для готелів -->
+                    <datalist id="hotelOptions">
+                        <% allHotels.forEach(hotel => { %>
+                            <option value="<%= hotel.hotel_name %>"></option>
+                        <% }) %>
+                    </datalist>
+                </div>
+                <div class="col-md-4">
+                    <input
+                            type="text"
+                            class="form-control"
+                            id="cityName"
+                            name="cityName"
+                            placeholder="Введіть місто"
+                            list="cityOptions"
+                            oninput="filterCitiesAndHotels()"
+                    >
+                    <datalist id="cityOptions">
+                        <% cities.forEach(city => { %>
+                            <option value="<%= city %>"></option>
+                        <% }) %>
+                    </datalist>
+                </div>
+
+                <!-- Кнопка пошуку -->
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Пошук</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="container my-5 card">
+    <section class="mb-5 text-center card-body">
+        <div class="d-flex justify-content-around align-items-center">
+            <div>
+                <p class="fs-1 text-primary mb-0"><%= bookingStatistics.total_bookings %></p>
+                <p class="text-muted">Кількість заброньованих<br> номерів за весь час</p>
+            </div>
+            <div>
+                <p class="fs-1 text-primary mb-0"><%= bookingStatistics.total_hotels %></p>
+                <p class="text-muted">Кількість готелів <br>на сайті</p>
+            </div>
+            <div>
+                <p class="fs-1 text-primary mb-0"><%= bookingStatistics.total_rooms %></p>
+                <p class="text-muted">Кількість номерів <br>на сайті</p>
+            </div>
+            <div>
+                <p class="fs-1 text-primary mb-0"><%= bookingStatistics.total_reviews %></p>
+                <p class="text-muted">Кількість відгуків <br>на сайті</p>
+            </div>
+        </div>
+    </section>
+
+
+    <section class="mb-5">
+        <h2>Популярні міста</h2>
+        <table class="table table-bordered">
+            <thead>
+            <tr>
+                <th>Місто</th>
+                <th>Кількість заброньованих номерів</th>
+                <th>Кількість готелів</th>
+                <th>Мінімальна ціна номера</th>
+                <th>Максимальна ціна номера</th>
+            </tr>
+            </thead>
+            <tbody>
+            <% citiesStatistics.forEach(city => { %>
+                <tr>
+                    <td><%= city.city %></td>
+                    <td><%= city.total_bookings_in_city %></td>
+                    <td><%= city.total_hotels_in_city %></td>
+                    <td><%= city.min_room_price_in_city %> грн</td>
+                    <td><%= city.max_room_price_in_city %> грн</td>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Популярні готелі</h2>
+        <div class="row">
+            <% hotelStatistics.forEach(hotel => { %>
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm">
+                        <img src="<%= hotel.hotel_photograph_url %>" class="card-img-top" style="object-fit: cover; max-height: 200px">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <h5 class="card-title"><a href="/hotel/<%= hotel.hotel_id%>"><%= hotel.hotel_name%></a></h5>
+                                    <div>
+                                        <% for(let i = 0; i < hotel.star_rating; i++) { %>
+                                            <i class="bi bi-star-fill"></i>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card-body row d-flex justify-content-end align-items-sm-start p-0 pe-2">
+                                        <div class="col-auto text-end">
+                                            <h4 style="font-size: 1em"><%= getRatingDescription(hotel.average_rating) %></h4>
+                                            <p class="text-muted" style="font-size: 0.8em"><%= getReviewDeclension(hotel.review_count) %><span class="<%= hotel.review_count === 0 ? "d-none" : ""%>"></span></p>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="bg-primary text-white rounded-4 d-flex align-items-center justify-content-center"
+                                                 style="width: 40px; height: 40px; font-size: 1em; font-weight: bold;">
+                                                <%= formatRating(hotel.average_rating)%>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="card-text">
+                            <p><%= hotel.full_addr %></p>
+                            <p>Кількість заброньованих номерів за весь час у готелі: <%= hotel.total_bookings_in_hotel %></p>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    </section>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+<script>
+    const allHotels = <%- JSON.stringify(allHotels) %>; // Масив об'єктів: { hotel_name, city }
+    const allCities = <%- JSON.stringify(cities) %>;   // Масив назв міст
+
+    function filterHotelsAndCities() {
+        const hotelInput = document.getElementById("hotelName").value.toLowerCase();
+        const hotelOptions = document.getElementById("hotelOptions");
+        const cityOptions = document.getElementById("cityOptions");
+
+        // Очистити попередні варіанти
+        hotelOptions.innerHTML = "";
+        cityOptions.innerHTML = "";
+
+        if (hotelInput.length > 0) {
+            // Фільтруємо готелі за назвою
+            const filteredHotels = allHotels.filter(hotel =>
+                hotel.hotel_name.toLowerCase().includes(hotelInput)
+            );
+
+            // Оновлюємо підказки для готелів
+            filteredHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+
+            // Оновлюємо підказки для міст
+            const filteredCities = [...new Set(filteredHotels.map(hotel => hotel.city))];
+            filteredCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+        } else {
+            // Показати всі готелі і міста
+            allHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+
+            allCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+        }
+    }
+
+    function filterCitiesAndHotels() {
+        const cityInput = document.getElementById("cityName").value.toLowerCase();
+        const cityOptions = document.getElementById("cityOptions");
+        const hotelOptions = document.getElementById("hotelOptions");
+
+        // Очистити попередні варіанти
+        cityOptions.innerHTML = "";
+        hotelOptions.innerHTML = "";
+
+        if (cityInput.length > 0) {
+            // Фільтруємо міста і відповідні готелі
+            const filteredHotels = allHotels.filter(hotel =>
+                hotel.city.toLowerCase().includes(cityInput)
+            );
+
+            // Оновлюємо підказки для міст
+            const filteredCities = [...new Set(filteredHotels.map(hotel => hotel.city))];
+            filteredCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+
+            // Оновлюємо підказки для готелів
+            filteredHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+        } else {
+            // Показати всі готелі і міста
+            allHotels.forEach(hotel => {
+                const option = document.createElement("option");
+                option.value = hotel.hotel_name;
+                hotelOptions.appendChild(option);
+            });
+
+            allCities.forEach(city => {
+                const option = document.createElement("option");
+                option.value = city;
+                cityOptions.appendChild(option);
+            });
+        }
+    }
+
+    // Ініціалізація початкових даних у полях
+    filterHotelsAndCities();
+</script>
+</body>
+</html>

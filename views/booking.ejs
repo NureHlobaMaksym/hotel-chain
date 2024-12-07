@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Бронювання номера</title>
+    <title><%= booking === null ? "Бронювання номера" : "Редагування бронювання"%></title>
 </head>
 <body>
 <header>
     <%- include('header'); %>
 </header>
 <div class="container my-5">
-    <h2 class="text-center mb-4">Бронювання номера</h2>
+    <h2 class="text-center mb-4"><%= booking === null ? "Бронювання номера" : "Редагування бронювання"%></h2>
     <div class="row d-flex justify-content-around">
         <div class="card mb-4" style="width: 48%">
             <div class="card-body">
@@ -250,7 +250,7 @@
 
         try {
             const response = await fetch(`/booking/${booking.booking_id}/edit`, {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },

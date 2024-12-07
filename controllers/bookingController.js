@@ -1,4 +1,8 @@
 import runDBCommand from "../db/connection.js";
+import ejs from "ejs";
+import pdf from "html-pdf";
+import * as path from "node:path";
+import { fileURLToPath } from 'url';
 
 export async function getBookings(req, res) {
     const userQuery = `SELECT * FROM user WHERE user_id = ?`;
@@ -348,4 +352,120 @@ export async function deleteBooking(req,res){
             message: 'Error deleting booking'
         });
     }
+}
+
+export async function getBookingReport(req,res){
+    const bookingReport = (await runDBCommand(`
+        SELECT
+            h.hotel_name,
+            h.full_addr,
+            h.hotel_phone_number,
+            GROUP_CONCAT(DISTINCT ha.hotel_amenity_name SEPARATOR ', ') AS hotel_amenities,
+            rt.room_type_name,
+            GROUP_CONCAT(DISTINCT ra.room_amenity_name SEPARATOR ', ') AS room_amenities,
+            b.number_of_guests,
+            b.booking_price,
+            GROUP_CONCAT(DISTINCT CONCAT(bt.bed_count, ' x ', bt_type.bed_name) SEPARATOR ', ') AS bed_info,
+            DATE_FORMAT(b.check_in_datetime, '%d.%m.%Y, %H:%i') AS formatted_check_in,
+            DATE_FORMAT(b.check_out_datetime, '%d.%m.%Y, %H:%i') AS formatted_check_out,
+            CONCAT(u.first_name, ' ', u.last_name) AS booker_name,
+            u.email,
+            u.user_phone_number
+        FROM
+            booking b
+        JOIN
+            room r ON b.room_id = r.room_id
+        JOIN
+            hotel h ON r.hotel_id = h.hotel_id
+        LEFT JOIN
+            hotel_hotel_amenity hha ON h.hotel_id = hha.hotel_id
+        LEFT JOIN
+            hotel_amenity ha ON hha.hotel_amenity_id = ha.hotel_amenity_id
+        LEFT JOIN
+            room_room_amenity rra ON r.room_id = rra.room_id
+        LEFT JOIN
+            room_amenity ra ON rra.room_amenity_id = ra.room_amenity_id
+        JOIN
+            room_type rt ON r.room_type_id = rt.room_type_id
+        LEFT JOIN
+            room_bed_type bt ON r.room_id = bt.room_id
+        LEFT JOIN
+            bed_type bt_type ON bt.bed_type_id = bt_type.bed_type_id
+        JOIN
+            user u ON b.user_id = u.user_id
+        WHERE
+            b.booking_id = ?
+        GROUP BY
+            b.booking_id,
+            h.hotel_name,
+            h.full_addr,
+            h.hotel_phone_number,
+            rt.room_type_name,
+            b.number_of_guests,
+            b.booking_price,
+            b.check_in_datetime,
+            b.check_out_datetime,
+            u.first_name,
+            u.last_name,
+            u.email,
+            u.user_phone_number;
+    `, [req.params.id]))[0]
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    await renderPdf(path.join(__dirname, '../views', 'bookingReport.ejs'),{
+            bookingReport: bookingReport
+    }, {}, `Бронювання особою ${bookingReport.booker_name} (${bookingReport.formatted_check_in} – ${bookingReport.formatted_check_out})`, res)
+}
+
+export async function getBookingCancellationReport(req,res){
+    const bookingCancellationReport = (await runDBCommand(`
+        SELECT
+            h.hotel_name,
+            h.full_addr,
+            h.hotel_phone_number,
+            b.booking_price,
+            CASE
+                WHEN b.check_in_datetime > NOW() THEN 0
+                ELSE ROUND(b.booking_price * 0.5, 1)
+            END AS refund_price,
+            DATE_FORMAT(b.check_in_datetime, '%d.%m.%Y, %H:%i') AS formatted_check_in,
+            DATE_FORMAT(b.check_out_datetime, '%d.%m.%Y, %H:%i') AS formatted_check_out,
+            CONCAT(u.first_name, ' ', u.last_name) AS booker_name,
+            u.email AS booker_email,
+            u.user_phone_number AS booker_phone,
+            DATE_FORMAT(NOW(), '%d.%m.%Y, %H:%i') AS cancellation_datetime
+        FROM
+            booking b
+        JOIN
+            room r ON b.room_id = r.room_id
+        JOIN
+            hotel h ON r.hotel_id = h.hotel_id
+        JOIN
+            user u ON b.user_id = u.user_id
+        WHERE
+            b.booking_id = ?;
+    `, [req.params.id]))[0]
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    await renderPdf(path.join(__dirname, '../views', 'bookingCancellationReport.ejs'),{
+        bookingCancellationReport: bookingCancellationReport
+    }, {}, `Скасування бронювання особою ${bookingCancellationReport.booker_name} (${bookingCancellationReport.formatted_check_in} – ${bookingCancellationReport.formatted_check_out})`, res)
+}
+
+async function renderPdf(templatePath, data, options, filename, res) {
+    ejs.renderFile(templatePath, data, (err, htmlContent) => {
+        if (err) {
+            return res.status(500).send(err);
+        }
+
+        pdf.create(htmlContent, options).toBuffer((err, buffer) => {
+            if (err) {
+                return res.status(500).send("Error generating PDF.");
+            }
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=${encodeURIComponent(filename)}.pdf`);
+            res.send(buffer);
+        });
+    });
 }

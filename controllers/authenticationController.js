@@ -72,7 +72,7 @@ export async function register(req,res){
 
         setJWTToken(user, res);
 
-        res.redirect('/hotels');
+        res.redirect('/');
     } catch (error) {
         console.error('Помилка при реєстрації користувача:', error);
         res.status(500).render('register', {
@@ -115,7 +115,7 @@ export async function login(req,res){
 
         setJWTToken(user, res);
 
-        res.redirect('/hotels');
+        res.redirect('/');
     } catch (error) {
         console.error('Помилка при вході:', error);
         res.status(500).render('login', {errorMessage: 'Помилка сервера. Спробуйте пізніше.'});
