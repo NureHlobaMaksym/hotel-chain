@@ -8,11 +8,19 @@ export async function getHotels(req, res) {
         ORDER BY city
     `);
     const hotelStatistics = (await runDBCommand(`
+        WITH room_capacity AS (
+            SELECT
+                rbt.room_id,
+                SUM(bt.capacity * rbt.bed_count) AS total_capacity
+            FROM room_bed_type rbt
+            JOIN bed_type bt ON rbt.bed_type_id = bt.bed_type_id
+            GROUP BY rbt.room_id
+        )
         SELECT
             MIN(rt.price_per_night + COALESCE(ra_price.total_room_amenity_price, 0) + COALESCE(hotel_amenities.total_hotel_amenity_price, 0)) AS overall_min_price,
             MAX(rt.price_per_night + COALESCE(ra_price.total_room_amenity_price, 0) + COALESCE(hotel_amenities.total_hotel_amenity_price, 0)) AS overall_max_price,
-            MIN(bt.capacity * rbt.bed_count) AS overall_min_capacity,
-            MAX(bt.capacity * rbt.bed_count) AS overall_max_capacity
+            MIN(rc.total_capacity) AS overall_min_capacity,
+            MAX(rc.total_capacity) AS overall_max_capacity
         FROM room r
             JOIN room_type rt ON r.room_type_id = rt.room_type_id
             LEFT JOIN (
@@ -21,8 +29,7 @@ export async function getHotels(req, res) {
                 JOIN room_amenity ra ON rra.room_amenity_id = ra.room_amenity_id
                 GROUP BY rra.room_id
             ) ra_price ON r.room_id = ra_price.room_id
-            LEFT JOIN room_bed_type rbt ON r.room_id = rbt.room_id
-            LEFT JOIN bed_type bt ON rbt.bed_type_id = bt.bed_type_id
+            JOIN room_capacity rc ON r.room_id = rc.room_id
             JOIN hotel h ON r.hotel_id = h.hotel_id
             LEFT JOIN (
                 SELECT hha.hotel_id, SUM(ha.hotel_amenity_price) AS total_hotel_amenity_price
@@ -113,7 +120,8 @@ export async function getHotel(req, res) {
              JOIN hotel_chain.room r on r.room_id = b.room_id
              RIGHT JOIN hotel_chain.hotel h on h.hotel_id = r.hotel_id
     WHERE h.hotel_id = ?
-    GROUP BY h.hotel_id`, [+req.params.id]))[0]
+    GROUP BY h.hotel_id
+    `, [+req.params.id]))[0]
     const reviews = await runDBCommand(`SELECT review_id,
        title,
        pros_description,
@@ -129,7 +137,7 @@ export async function getHotel(req, res) {
        5 AS average_rating
 FROM review
          JOIN booking ON review.booking_id = booking.booking_id
-         JOIN hotel_chain.user u on booking.user_id = u.user_id
+         LEFT JOIN hotel_chain.user u on booking.user_id = u.user_id
          JOIN room r on r.room_id = booking.room_id
          WHERE r.hotel_id = ? ORDER BY submission_datetime DESC`, [+req.params.id])
 
@@ -165,7 +173,6 @@ export async function searchHotels(req, res) {
     let roomAmenitiesCondition = '';
     let hotelAmenitiesCondition = '';
 
-    // Створюємо умови фільтрації для зручностей номера
     if (roomAmenities.length > 0) {
         roomAmenitiesCondition = `
             AND (
@@ -295,8 +302,6 @@ export async function searchHotels(req, res) {
 
 export async function searchRooms(req, res) {
     const { roomName, guestCount, startDate, endDate, sortBy } = req.query;
-
-    // Побудова SQL-умови сортування
     let orderByClause = '';
     switch (sortBy) {
         case 'price_asc':

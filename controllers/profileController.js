@@ -127,13 +127,16 @@ export async function deleteProfile(req,res){
 
 export async function getProfileStatistics(req,res) {
     const statistics = (await runDBCommand(`
-        SELECT IFNULL(COUNT(1), 0)           AS booking_count,
-               IFNULL(SUM(booking_price), 0) AS total_booking_price,
-               IFNULL(COUNT(review_id), 0)   AS review_count
+        SELECT IFNULL(COUNT(1), 0)                           AS booking_count,
+               (SELECT IFNULL(SUM(booking_price), 0)
+                FROM booking
+                WHERE booking.check_out_datetime < NOW()
+                  AND user_id = ?)                           AS total_booking_price,
+               IFNULL(COUNT(review_id), 0)                   AS review_count
         FROM booking
                  LEFT JOIN review ON booking.booking_id = review.booking_id
         WHERE user_id = ?
-    `, [+req.user.user_id]))[0];
+    `, [+req.user.user_id, +req.user.user_id]))[0];
 
     res.status(200).json({
         "success": true,

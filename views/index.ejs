@@ -131,6 +131,57 @@
             align-items: center;
             font-weight: bold;
         }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .input-group:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .input-group-text {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+        }
+
+        .form-control {
+            border: none;
+            border-radius: 0;
+            padding: 0.75rem 1rem;
+            outline: none;
+            box-shadow: none;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #2563eb;
+        }
+
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-weight: bold;
+        }
+
+        .btn-primary i {
+            font-size: 1.25rem;
+        }
     </style>
 </head>
 <body>
@@ -185,17 +236,29 @@ function formatRating(rating) {
         <div class="card p-4">
             <form method="get" action="/hotels" class="row g-3">
                 <div class="col-md-4">
-                    <input type="text" class="form-control" id="hotelName" name="hotelName" placeholder="Введіть назву готелю"
-                           list="hotelOptions" oninput="filterHotelsAndCities()">
-                    <datalist id="hotelOptions"></datalist>
+                    <div class="input-group">
+                <span class="input-group-text bg-primary text-white">
+                    <i class="bi bi-building"></i>
+                </span>
+                        <input type="text" class="form-control" id="hotelName" name="hotelName" placeholder="Введіть назву готелю"
+                               list="hotelOptions" oninput="filterHotelsAndCities()">
+                        <datalist id="hotelOptions"></datalist>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <input type="text" class="form-control" id="cityName" name="cityName" placeholder="Введіть місто"
-                           list="cityOptions" oninput="filterCitiesAndHotels()">
-                    <datalist id="cityOptions"></datalist>
+                    <div class="input-group">
+                <span class="input-group-text bg-primary text-white">
+                    <i class="bi bi-geo-alt"></i>
+                </span>
+                        <input type="text" class="form-control" id="cityName" name="cityName" placeholder="Введіть місто"
+                               list="cityOptions" oninput="filterCitiesAndHotels()">
+                        <datalist id="cityOptions"></datalist>
+                    </div>
                 </div>
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-100">Пошук</button>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Пошук
+                    </button>
                 </div>
             </form>
         </div>
@@ -274,32 +337,25 @@ function formatRating(rating) {
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
 <script>
-    const allHotels = <%- JSON.stringify(allHotels) %>; // Масив об'єктів: { hotel_name, city }
-    const allCities = <%- JSON.stringify(cities) %>;   // Масив назв міст
+    const allHotels = <%- JSON.stringify(allHotels) %>;
+    const allCities = <%- JSON.stringify(cities) %>;
 
     function filterHotelsAndCities() {
         const hotelInput = document.getElementById("hotelName").value.toLowerCase();
         const hotelOptions = document.getElementById("hotelOptions");
         const cityOptions = document.getElementById("cityOptions");
-
-        // Очистити попередні варіанти
         hotelOptions.innerHTML = "";
         cityOptions.innerHTML = "";
 
         if (hotelInput.length > 0) {
-            // Фільтруємо готелі за назвою
             const filteredHotels = allHotels.filter(hotel =>
                 hotel.hotel_name.toLowerCase().includes(hotelInput)
             );
-
-            // Оновлюємо підказки для готелів
             filteredHotels.forEach(hotel => {
                 const option = document.createElement("option");
                 option.value = hotel.hotel_name;
                 hotelOptions.appendChild(option);
             });
-
-            // Оновлюємо підказки для міст
             const filteredCities = [...new Set(filteredHotels.map(hotel => hotel.city))];
             filteredCities.forEach(city => {
                 const option = document.createElement("option");
@@ -307,13 +363,11 @@ function formatRating(rating) {
                 cityOptions.appendChild(option);
             });
         } else {
-            // Показати всі готелі і міста
             allHotels.forEach(hotel => {
                 const option = document.createElement("option");
                 option.value = hotel.hotel_name;
                 hotelOptions.appendChild(option);
             });
-
             allCities.forEach(city => {
                 const option = document.createElement("option");
                 option.value = city;
@@ -326,39 +380,29 @@ function formatRating(rating) {
         const cityInput = document.getElementById("cityName").value.toLowerCase();
         const cityOptions = document.getElementById("cityOptions");
         const hotelOptions = document.getElementById("hotelOptions");
-
-        // Очистити попередні варіанти
         cityOptions.innerHTML = "";
         hotelOptions.innerHTML = "";
-
         if (cityInput.length > 0) {
-            // Фільтруємо міста і відповідні готелі
             const filteredHotels = allHotels.filter(hotel =>
                 hotel.city.toLowerCase().includes(cityInput)
             );
-
-            // Оновлюємо підказки для міст
             const filteredCities = [...new Set(filteredHotels.map(hotel => hotel.city))];
             filteredCities.forEach(city => {
                 const option = document.createElement("option");
                 option.value = city;
                 cityOptions.appendChild(option);
             });
-
-            // Оновлюємо підказки для готелів
             filteredHotels.forEach(hotel => {
                 const option = document.createElement("option");
                 option.value = hotel.hotel_name;
                 hotelOptions.appendChild(option);
             });
         } else {
-            // Показати всі готелі і міста
             allHotels.forEach(hotel => {
                 const option = document.createElement("option");
                 option.value = hotel.hotel_name;
                 hotelOptions.appendChild(option);
             });
-
             allCities.forEach(city => {
                 const option = document.createElement("option");
                 option.value = city;
@@ -367,7 +411,6 @@ function formatRating(rating) {
         }
     }
 
-    // Ініціалізація початкових даних у полях
     filterHotelsAndCities();
 </script>
 </body>

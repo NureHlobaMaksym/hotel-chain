@@ -155,11 +155,12 @@
                 <% if (typeof isLoggedIn !== "undefined" && isLoggedIn) { %>
                     <a href="/profile" class="d-flex align-items-center text-decoration-none text-dark">
                         <li class="nav-item d-flex align-items-center">
-                        <span class="review-avatar rounded-circle d-flex justify-content-center align-items-center me-2"
-                              style="width: 40px; height: 40px; background-color: <%= getAvatarColor(user.user_id.toString()) %>;">
-                            <%= user.first_name.charAt(0) %>
-                        </span>
-                            <span class="text-dark" style="font-size: 1.2rem;"><%= user.first_name + " " + user.last_name %></span>
+                            <span class="review-avatar rounded-circle d-flex justify-content-center align-items-center me-2"
+                                  style="width: 40px; height: 40px; background-color: <%= getAvatarColor(user.user_id.toString()) %>;">
+                                <%= user.first_name.charAt(0) %>
+                            </span>
+                            <span class="text-dark"
+                                  style="font-size: 1.2rem;"><%= user.first_name + " " + user.last_name %></span>
                         </li>
                     </a>
                 <% } %>

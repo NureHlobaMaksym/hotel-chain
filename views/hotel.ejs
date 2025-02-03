@@ -424,10 +424,10 @@ function getRatingDescription(rating) {
                         <% reviews.slice(0, 3).forEach(review => { %>
                             <hr class="mt-1"><p>"<%= review.pros_description.length > 300 ? review.pros_description.substring(0, 300) + '...' : review.pros_description %>"</p>
                             <div class="row ms-2">
-                                <div class="review-avatar col-auto" style="background-color: <%= getAvatarColor(review.user_id.toString()) %>;"><%= review.first_name.charAt(0) %></div>
+                                <div class="review-avatar col-auto" style="background-color: <%= review.user_id === null ? "none" : getAvatarColor(review.user_id.toString()) %>;"><%= review.first_name === null ? "?" : review.first_name.charAt(0) %></div>
                                 <div class="col-auto">
-                                    <p class="mb-0 d-inline"><%= review.first_name %></p><br>
-                                    <div class="d-inline text-muted"><%= review.country %></div>
+                                    <p class="mb-0 d-inline"><%= review.first_name === null ? "Акаунт видалено" : review.first_name %></p><br>
+                                    <div class="d-inline text-muted"><%= review.country === null ? "Країна невідома" : review.country %></div>
                                 </div>
                             </div>
                         <% }) %>
@@ -589,11 +589,11 @@ function getRatingDescription(rating) {
                         <div class="review row mb-4 p-4 border rounded">
                             <div class="col-3">
                                 <div class="row">
-                                    <div class="review-avatar col-auto" style="background-color: <%= getAvatarColor(review.user_id.toString()) %>;"><%= review.first_name.charAt(0) %></div>
+                                    <div class="review-avatar col-auto" style="background-color: <%= review.user_id === null ? "none" : getAvatarColor(review.user_id.toString()) %>;"><%= review.first_name === null ? "?" : review.first_name.charAt(0) %></div>
                                     <div class="col-9">
-                                        <h6 class="mb-0 d-inline"><%= review.first_name %></h6><br>
+                                        <h6 class="mb-0 d-inline"><%= review.first_name === null ? "Акаунт видалено" : review.first_name %></h6><br>
                                         <div class="mb-0 d-inline" style="font-size: 0.9em">
-                                            <span class="mb-0 d-inline"><%= review.country %></span>
+                                            <span class="mb-0 d-inline"><%= review.country === null ? "Країна невідома" : review.country %></span>
                                             <span class="dot">•</span>
                                             <span><%= getNightDeclension(calculateNights(review.check_in_datetime, review.check_out_datetime)) %></span>
                                         </div>
